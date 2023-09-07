@@ -1,0 +1,7 @@
+*.vtk
+*.prof
+*.log
+*.o
+*.exe
+source/MphImplicit
+generator/GeneratorForMph
