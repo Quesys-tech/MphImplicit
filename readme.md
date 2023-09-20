@@ -15,6 +15,8 @@
 //     [3] CPM 9 (2022) 265-276,     https://doi.org/10.1007/s40571-021-00408-y                   //
 //     [4] CMAME 385 (2021) 114072,  https://doi.org/10.1016/j.cma.2021.114072                    //
 //     [5] JSCES Paper No.20210016,  https://doi.org/10.11421/jsces.2021.20210016                 //
+//     [6] CPM (2023),               https://doi.org/10.1007/s40571-023-00636-4                   //
+//    (Please cite the references above when you make a publication using this program)           //
 //    Copyright (c) 2022                                                                          //
 //    Masahiro Kondo & National Institute of Advanced Industrial Science and Technology (AIST)    //
 //================================================================================================//
@@ -98,14 +100,6 @@ For 3D OpenACC calculation with NVIDIA HPC-SDK;
 ```
 > make Mph_acc3d
 ``` 
-For 2D OpenACC calculation using CUDA libraries (cublas & cusparse) with NVIDIA HPC-SDK; 
-```
-> make Mph_cuda
-``` 
-For 3D OpenACC calculation using CUDA libraries (cublas & cusparse) with NVIDIA HPC-SDK;
-```
-> make Mph_cuda3d
-``` 
 See "makefile" in detail. 
 
 Instead of switching the target executable as above, 
@@ -122,11 +116,6 @@ For using openACC apply
  CFLAGS  =  -O3 -acc -Minfo=accel  
 ```
 
-For using CUDA libraries (cublas & cusparse) apply
-```
- CC = pgc++
- CFLAGS  =  -O3 -acc -Minfo=accel -ta=tesla,cc70 -Mcuda
- LDFLAGS =  -lm -lcublas -lcusparse
 ```
  
 The solver program has only been tested with 
