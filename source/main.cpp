@@ -12,6 +12,8 @@
 //     [3] CPM 9 (2022) 265-276,     https://doi.org/10.1007/s40571-021-00408-y                   //
 //     [4] CMAME 385 (2021) 114072,  https://doi.org/10.1016/j.cma.2021.114072                    //
 //     [5] JSCES Paper No.20210016,  https://doi.org/10.11421/jsces.2021.20210016                 //
+//     [6] CPM (2023),               https://doi.org/10.1007/s40571-023-00636-4                   //
+//    (Please cite the references above when you make a publication using this program)           //
 //    Copyright (c) 2022                                                                          //
 //    Masahiro Kondo & National Institute of Advanced Industrial Science and Technology (AIST)    //
 //================================================================================================//
@@ -112,7 +114,7 @@ static double (*TmpDoubleVector)[DIM];        // [ParticleCount]
 
 static int PowerParticleCount;
 static int ParticleCountPower;                   
-static double CellWidth = 0.0;
+static double CellWidth[DIM];
 static int CellCount[DIM];
 static int TotalCellCount = 0;       // CellCount[0]*CellCount[1]*CellCount[2]
 static int *CellFluidParticleBegin;  // [CellCounts+1]// beginning of fluid particles in the cell
@@ -358,7 +360,7 @@ int main(int argc, char *argv[])
 	#pragma acc update device(Density[0:TYPE_COUNT],BulkModulus[0:TYPE_COUNT],BulkViscosity[0:TYPE_COUNT],ShearViscosity[0:TYPE_COUNT],SurfaceTension[0:TYPE_COUNT])
 	#pragma acc update device(CofA[0:TYPE_COUNT],CofK,InteractionRatio[0:TYPE_COUNT][0:TYPE_COUNT])
 	#pragma acc update device(Position[0:ParticleCount][0:DIM],Velocity[0:ParticleCount][0:DIM],Force[0:ParticleCount][0:DIM])
-	#pragma acc update device(PowerParticleCount,ParticleCountPower,CellWidth,CellCount[0:DIM],TotalCellCount)
+	#pragma acc update device(PowerParticleCount,ParticleCountPower,CellWidth[0:DIM],CellCount[0:DIM],TotalCellCount)
 	#pragma acc update device(Lambda[0:ParticleCount],Kappa[0:ParticleCount],Mu[0:ParticleCount])
 	#pragma acc update device(Gravity[0:DIM])
 	#pragma acc update device(WallCenter[0:WALL_END][0:DIM],WallVelocity[0:WALL_END][0:DIM],WallOmega[0:WALL_END][0:DIM],WallRotation[0:WALL_END][0:DIM][0:DIM])
@@ -501,7 +503,7 @@ int main(int argc, char *argv[])
 //	#pragma acc exit data delete(NeighborFluidCount[0:ParticleCount],NeighborCount[0:ParticleCount],NeighborPtr[0:PowerParticleCount],NeighborInd[0:NeighborIndCount])
 //	#pragma acc exit data delete(NeighborCountP[0:ParticleCount],NeighborP[0:ParticleCount][0:MAX_NEIGHBOR_COUNT])
 //	#pragma acc exit data delete(TmpIntScalar[0:ParticleCount],TmpDoubleScalar[0:ParticleCount],TmpDoubleVector[0:ParticleCount][0:DIM])
-//	#pragma acc exit data delete(PowerParticleCount,ParticleCountPower,CellWidth,CellCount[0:DIM],TotalCellCount)
+//	#pragma acc exit data delete(PowerParticleCount,ParticleCountPower,CellWidth[0:DIM],CellCount[0:DIM],TotalCellCount)
 //	#pragma acc exit data delete(CellFluidParticleBegin[0:TotalCellCount],CellFluidParticleEnd[0:TotalCellCount],CellWallParticleBegin[0:TotalCellCount],CellWallParticleEnd[0:TotalCellCount])
 //	#pragma acc exit data delete(CellIndex[0:PowerParticleCount],CellParticle[0:PowerParticleCount])
 //	#pragma acc exit data delete(FluidParticleBegin,FluidParticleEnd)
@@ -1061,53 +1063,102 @@ static void initializeWall()
 
 static void initializeDomain( void )
 {
+		
 	MaxRadius = ((RadiusA>MaxRadius) ? RadiusA : MaxRadius);
 	MaxRadius = ((2.0*RadiusP>MaxRadius) ? 2.0*RadiusP : MaxRadius);
 	MaxRadius = ((RadiusV>MaxRadius) ? RadiusV : MaxRadius);
 	fprintf(stderr, "MaxRadius = %lf\n", MaxRadius);
-	
-	//CellWidth=ParticleSpacing;
-	CellWidth = ceil(MaxRadius/ParticleSpacing)*ParticleSpacing;
+
+	DomainWidth[0] = DomainMax[0] - DomainMin[0];
+	DomainWidth[1] = DomainMax[1] - DomainMin[1];
+	DomainWidth[2] = DomainMax[2] - DomainMin[2];
 	
 	double cellCount[DIM];
 	
-	cellCount[0] = (DomainMax[0] - DomainMin[0])/CellWidth;
-	cellCount[1] = (DomainMax[1] - DomainMin[1])/CellWidth;
+	cellCount[0] = floor((DomainMax[0] - DomainMin[0])/(MaxRadius));
+	cellCount[1] = floor((DomainMax[1] - DomainMin[1])/(MaxRadius));
 	#ifdef TWO_DIMENSIONAL
 	cellCount[2] = 1;
 	#else
-	cellCount[2] = (DomainMax[2] - DomainMin[2])/CellWidth;
+	cellCount[2] = floor((DomainMax[2] - DomainMin[2])/(MaxRadius));
 	#endif
 	
-	CellCount[0] = (int)ceil(cellCount[0]);
-	CellCount[1] = (int)ceil(cellCount[1]);
-	CellCount[2] = (int)ceil(cellCount[2]);
-	TotalCellCount = CellCount[0]*CellCount[1]*CellCount[2];
-	fprintf(stderr, "TotalCellCount = %d\n", TotalCellCount);
+	CellCount[0] = (int)cellCount[0];
+	CellCount[1] = (int)cellCount[1];
+	CellCount[2] = (int)cellCount[2];
+	TotalCellCount   = cellCount[0]*cellCount[1]*cellCount[2];
+	log_printf("line:%d CellCount[DIM]: %d %d %d\n", __LINE__, CellCount[0], CellCount[1], CellCount[2]);
+	log_printf("line:%d TotalCellCount: %d\n", __LINE__, TotalCellCount);
+	
+	CellWidth[0]=DomainWidth[0]/CellCount[0];
+	CellWidth[1]=DomainWidth[1]/CellCount[1];
+	CellWidth[2]=DomainWidth[2]/CellCount[2];
+	log_printf("line:%d CellWidth[DIM]: %e %e %e\n", __LINE__, CellWidth[0], CellWidth[1], CellWidth[2]);
 
-    if(cellCount[0]!=(double)CellCount[0] || cellCount[1]!=(double)CellCount[1] ||cellCount[2]!=(double)CellCount[2]){
-        fprintf(stderr,"DomainWidth/CellWidth is not integer\n");
-        DomainMax[0] = DomainMin[0] + CellWidth*(double)CellCount[0];
-        DomainMax[1] = DomainMin[1] + CellWidth*(double)CellCount[1];
-        DomainMax[2] = DomainMin[2] + CellWidth*(double)CellCount[2];
-        fprintf(stderr,"Changing the Domain Max to (%e,%e,%e)\n", DomainMax[0], DomainMax[1], DomainMax[2]);
-    }
-    DomainWidth[0] = DomainMax[0] - DomainMin[0];
-    DomainWidth[1] = DomainMax[1] - DomainMin[1];
-    DomainWidth[2] = DomainMax[2] - DomainMin[2];
-
-	CellFluidParticleBegin = (int *)malloc( TotalCellCount * sizeof(int) );
-	CellFluidParticleEnd   = (int *)malloc( TotalCellCount * sizeof(int) );
-	CellWallParticleBegin  = (int *)malloc( TotalCellCount * sizeof(int) );
-	CellWallParticleEnd    = (int *)malloc( TotalCellCount * sizeof(int) );
+	
+	CellFluidParticleBegin = (int *)malloc( (TotalCellCount) * sizeof(int) );
+	CellFluidParticleEnd   = (int *)malloc( (TotalCellCount) * sizeof(int) );
+	CellWallParticleBegin = (int *)malloc( (TotalCellCount) * sizeof(int) );
+	CellWallParticleEnd   = (int *)malloc( (TotalCellCount) * sizeof(int) );
 	#pragma acc enter data create(CellFluidParticleBegin[0:TotalCellCount]) attach(CellFluidParticleBegin)
 	#pragma acc enter data create(CellFluidParticleEnd[0:TotalCellCount]) attach(CellFluidParticleEnd)
 	#pragma acc enter data create(CellWallParticleBegin[0:TotalCellCount]) attach(CellWallParticleBegin)
 	#pragma acc enter data create(CellWallParticleEnd[0:TotalCellCount]) attach(CellWallParticleEnd)
 	
-	#pragma acc update device(CellCount[0:DIM],TotalCellCount)
-	#pragma acc update device(DomainMin[0:DIM],DomainMax[0:DIM],DomainWidth[0:DIM])
-	#pragma acc update device(MaxRadius)
+	#pragma acc update device(MaxRadius)	
+	#pragma acc update device(CellWidth[0:DIM],CellCount[0:DIM],TotalCellCount)
+	#pragma acc update device(DomainMax[0:DIM],DomainMin[0:DIM],DomainWidth[0:DIM])
+	#pragma acc update device(ParticleCountPower,PowerParticleCount)
+	
+	///
+	
+//	MaxRadius = ((RadiusA>MaxRadius) ? RadiusA : MaxRadius);
+//	MaxRadius = ((2.0*RadiusP>MaxRadius) ? 2.0*RadiusP : MaxRadius);
+//	MaxRadius = ((RadiusV>MaxRadius) ? RadiusV : MaxRadius);
+//	fprintf(stderr, "MaxRadius = %lf\n", MaxRadius);
+//	
+//	//CellWidth=ParticleSpacing;
+//	CellWidth = ceil(MaxRadius/ParticleSpacing)*ParticleSpacing;
+//	
+//	double cellCount[DIM];
+//	
+//	cellCount[0] = (DomainMax[0] - DomainMin[0])/CellWidth;
+//	cellCount[1] = (DomainMax[1] - DomainMin[1])/CellWidth;
+//	#ifdef TWO_DIMENSIONAL
+//	cellCount[2] = 1;
+//	#else
+//	cellCount[2] = (DomainMax[2] - DomainMin[2])/CellWidth;
+//	#endif
+//	
+//	CellCount[0] = (int)ceil(cellCount[0]);
+//	CellCount[1] = (int)ceil(cellCount[1]);
+//	CellCount[2] = (int)ceil(cellCount[2]);
+//	TotalCellCount = CellCount[0]*CellCount[1]*CellCount[2];
+//	fprintf(stderr, "TotalCellCount = %d\n", TotalCellCount);
+//
+//    if(cellCount[0]!=(double)CellCount[0] || cellCount[1]!=(double)CellCount[1] ||cellCount[2]!=(double)CellCount[2]){
+//        fprintf(stderr,"DomainWidth/CellWidth is not integer\n");
+//        DomainMax[0] = DomainMin[0] + CellWidth*(double)CellCount[0];
+//        DomainMax[1] = DomainMin[1] + CellWidth*(double)CellCount[1];
+//        DomainMax[2] = DomainMin[2] + CellWidth*(double)CellCount[2];
+//        fprintf(stderr,"Changing the Domain Max to (%e,%e,%e)\n", DomainMax[0], DomainMax[1], DomainMax[2]);
+//    }
+//    DomainWidth[0] = DomainMax[0] - DomainMin[0];
+//    DomainWidth[1] = DomainMax[1] - DomainMin[1];
+//    DomainWidth[2] = DomainMax[2] - DomainMin[2];
+//
+//	CellFluidParticleBegin = (int *)malloc( TotalCellCount * sizeof(int) );
+//	CellFluidParticleEnd   = (int *)malloc( TotalCellCount * sizeof(int) );
+//	CellWallParticleBegin  = (int *)malloc( TotalCellCount * sizeof(int) );
+//	CellWallParticleEnd    = (int *)malloc( TotalCellCount * sizeof(int) );
+//	#pragma acc enter data create(CellFluidParticleBegin[0:TotalCellCount]) attach(CellFluidParticleBegin)
+//	#pragma acc enter data create(CellFluidParticleEnd[0:TotalCellCount]) attach(CellFluidParticleEnd)
+//	#pragma acc enter data create(CellWallParticleBegin[0:TotalCellCount]) attach(CellWallParticleBegin)
+//	#pragma acc enter data create(CellWallParticleEnd[0:TotalCellCount]) attach(CellWallParticleEnd)
+//	
+//	#pragma acc update device(CellCount[0:DIM],TotalCellCount)
+//	#pragma acc update device(DomainMin[0:DIM],DomainMax[0:DIM],DomainWidth[0:DIM])
+//	#pragma acc update device(MaxRadius)
 }
 
 static void calculateCellParticle()
@@ -1119,9 +1170,9 @@ static void calculateCellParticle()
 	#pragma omp parallel for
 	for(int iP=0; iP<PowerParticleCount; ++iP){
 		if(iP<ParticleCount){
-			const int iCX=((int)floor((Position[iP][0]-DomainMin[0])/CellWidth))%CellCount[0];
-			const int iCY=((int)floor((Position[iP][1]-DomainMin[1])/CellWidth))%CellCount[1];
-			const int iCZ=((int)floor((Position[iP][2]-DomainMin[2])/CellWidth))%CellCount[2];
+			const int iCX=((int)floor((Position[iP][0]-DomainMin[0])/CellWidth[0]))%CellCount[0];
+			const int iCY=((int)floor((Position[iP][1]-DomainMin[1])/CellWidth[1]))%CellCount[1];
+			const int iCZ=((int)floor((Position[iP][2]-DomainMin[2])/CellWidth[2]))%CellCount[2];
 			CellIndex[iP]=CellId(iCX,iCY,iCZ);
 			if(WALL_BEGIN<=Property[iP] && Property[iP]<WALL_END){
 				CellIndex[iP] += TotalCellCount;
@@ -1339,12 +1390,12 @@ static void calculateNeighbor( void )
 		NeighborCountP[iP]=0;
 	}
 	
-	const int rangeX = (int)(ceil(MaxRadius/CellWidth));
-	const int rangeY = (int)(ceil(MaxRadius/CellWidth));
+	const int rangeX = (int)(ceil(MaxRadius/CellWidth[0]));
+	const int rangeY = (int)(ceil(MaxRadius/CellWidth[1]));
 	#ifdef TWO_DIMENSIONAL
 	const int rangeZ = 0;
 	#else // not TWO_DIMENSIONAL (three dimensional) 
-	const int rangeZ = (int)(ceil(MaxRadius/CellWidth));
+	const int rangeZ = (int)(ceil(MaxRadius/CellWidth[2]));
 	#endif
 	
 	#define MAX_1D_NEIGHBOR_CELL_COUNT 3
@@ -1909,7 +1960,7 @@ static void calculateDivergenceP()
 				}
 				#pragma acc loop seq
 				for(int iD=0;iD<DIM;++iD){
-					DivergenceP[iP] -= uij[iD]*eij[iD]*dw;
+					sum -= uij[iD]*eij[iD]*dw;
 				}
 			}
 		}
@@ -2750,20 +2801,20 @@ static void calculateMultiGridDepth( void ){
 		}
 	}
 	
-	double maxGridWidth=0.0;
-	if(CellWidth*(iCXmax-iCXmin)>maxGridWidth){
-		maxGridWidth=CellWidth*(iCXmax-iCXmin+1);
+	double maxGridCount=0.0;
+	if((iCXmax-iCXmin)>maxGridCount){
+		maxGridCount=(iCXmax-iCXmin+1);
 	}
-	if(CellWidth*(iCYmax-iCYmin)>maxGridWidth){
-		maxGridWidth=CellWidth*(iCYmax-iCYmin+1);
+	if((iCYmax-iCYmin)>maxGridCount){
+		maxGridCount=(iCYmax-iCYmin+1);
 	}
-	if(CellWidth*(iCZmax-iCZmin)>maxGridWidth){
-		maxGridWidth=CellWidth*(iCZmax-iCZmin+1);
+	if((iCZmax-iCZmin)>maxGridCount){
+		maxGridCount=(iCZmax-iCZmin+1);
 	}
 	
 	{
 		int iPower=0;
-		while((1<<iPower)*CellWidth <= maxGridWidth){
+		while((1<<iPower) <= maxGridCount){
 			iPower++;
 		}
 		MultiGridDepth=iPower;
