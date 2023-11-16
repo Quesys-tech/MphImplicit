@@ -44,7 +44,6 @@ const double DOUBLE_ZERO[32]={0.0, 0.0, 0.0, 0.0,  0.0, 0.0, 0.0, 0.0,
 using namespace std;
 //#define TWO_DIMENSIONAL
 //#define CONVERGENCE_CHECK
-#define MULTIGRID_SOLVER
 
 #define DIM 3
 
@@ -438,14 +437,10 @@ int main(int argc, char *argv[])
 		multiplyMatrixC();
 		freeMatrixC();
 		cTill = clock(); cImplicitMulti += (cTill-cFrom); cFrom = cTill;
-		#ifdef MULTIGRID_SOLVER
 		calculateMultiGridMatrix();
 		cTill = clock(); cPrecondition += (cTill-cFrom); cFrom = cTill;
-		#endif
 		solveWithConjugatedGradient();
-		#ifdef MULTIGRID_SOLVER
 		freeMultiGridMatrix();
-		#endif
 		freeMatrixA();
 		cTill = clock(); cImplicitSolve += (cTill-cFrom); cFrom = cTill;
 		
@@ -492,8 +487,8 @@ int main(int argc, char *argv[])
     }
 
 	
-//	“®“Iƒƒ‚ƒŠŠm•Û‚ğ‚µ‚Ä‚¢‚È‚¢•Ï”‚â”z—ñ‚É‘Î‚µ‚Äƒƒ‚ƒŠ‰ğ•ú‚ğs‚¤‚ÆcuMemFree‚ªƒGƒ‰[‚ğ•Ô‚·
-//	ƒvƒƒOƒ‰ƒ€I—¹‚Ìƒƒ‚ƒŠ‰ğ•ú‚ÉŠú‘Ò‚µ‚ÄA–¾¦“I‚Èƒƒ‚ƒŠ‰ğ•ú‚ÍÈ—ª
+//	å‹•çš„ãƒ¡ãƒ¢ãƒªç¢ºä¿ã‚’ã—ã¦ã„ãªã„å¤‰æ•°ã‚„é…åˆ—ã«å¯¾ã—ã¦ãƒ¡ãƒ¢ãƒªè§£æ”¾ã‚’è¡Œã†ã¨cuMemFreeãŒã‚¨ãƒ©ãƒ¼ã‚’è¿”ã™
+//	ãƒ—ãƒ­ã‚°ãƒ©ãƒ çµ‚äº†æ™‚ã®ãƒ¡ãƒ¢ãƒªè§£æ”¾ã«æœŸå¾…ã—ã¦ã€æ˜ç¤ºçš„ãªãƒ¡ãƒ¢ãƒªè§£æ”¾ã¯çœç•¥
 	
 //	#pragma acc exit data delete(ParticleSpacing,ParticleVolume,Dt,DomainMin[0:DIM],DomainMax[0:DIM],DomainWidth[0:DIM])
 //	#pragma acc exit data delete(ParticleCount,ParticleIndex[0:ParticleCount],Property[0:ParticleCount],Mass[0:ParticleCount])
@@ -2130,7 +2125,7 @@ static void calculateWall()
 static long int NonzeroCountA;
 static double       *CsrCofA;  // [ FluidCount * DIM x NeighFluidCount * DIM]
 static int          *CsrIndA;  // [ FluidCount * DIM x NeighFluidCount * DIM]
-static long int *CsrPtrA;  // [ FluidCount * DIM + 1 ] NeighborFluidCount‚ÌÏZ—ñ‚Æ‚µ‚ÄŒvZ‰Â
+static long int *CsrPtrA;  // [ FluidCount * DIM + 1 ] NeighborFluidCountã®ç©ç®—åˆ—ã¨ã—ã¦è¨ˆç®—å¯
 static double *VectorB;  // [ FluidCount * DIM ]
 #pragma acc declare create(NonzeroCountA,CsrCofA,CsrIndA,CsrPtrA,VectorB)
 
@@ -2347,7 +2342,7 @@ static void freeMatrixA( void ){
 static long int  NonzeroCountC;
 static double       *CsrCofC; // [ FluidCount * DIM x NeighCount ]
 static int          *CsrIndC; // [ FluidCount * DIM x NeighCount ]
-static long int *CsrPtrC; // [ FluidCount * DIM + 1 ] NeighCount‚ÌÏZ—ñ
+static long int *CsrPtrC; // [ FluidCount * DIM + 1 ] NeighCountã®ç©ç®—åˆ—
 static double *VectorP; // [ ParticleCount ]
 #pragma acc declare create(NonzeroCountC, CsrCofC,CsrIndC,CsrPtrC,VectorP)
 
@@ -2583,7 +2578,7 @@ static void multiplyMatrixC( void )
 		}
 	}
 	
-	// A = A + Cƒ©C^T
+	// A = A + CÎ›C^T
 	#pragma acc kernels present(CsrPtrA[0:N],CsrIndA[0:NonzeroCountA],CsrCofA[0:NonzeroCountA],CsrPtrC[0:N],CsrIndC[0:NonzeroCountC],CsrCofC[0:NonzeroCountC],NeighborInd[0:NeighborIndCount],NeighborPtrP[0:PowerParticleCount],NeighborIndP[0:NeighborIndCountP],NeighborCountP[0:ParticleCount],Lambda[0:ParticleCount])
 	#pragma acc loop independent
 	#pragma omp parallel for
@@ -2652,7 +2647,7 @@ static int (*MultiGridCellMax)[DIM];
 static int (*MultiGridCount)[DIM];
 #pragma acc declare create(MultiGridCellMin,MultiGridCellMax,MultiGridCount)
 
-static int  (*MultiGridOffset); //‚±‚±‚É‰½ŒÂ–Ú‚ÌGrid‚©‚ç‚ªiPower‚ÌŠK‘w‚©‚ğ¦‚·
+static int  (*MultiGridOffset); //ã“ã“ã«ä½•å€‹ç›®ã®Gridã‹ã‚‰ãŒiPowerã®éšå±¤ã‹ã‚’ç¤ºã™
 #pragma acc declare create(MultiGridOffset)
 
 static int TotalTopGridCount;
@@ -3050,14 +3045,16 @@ static void calculateInvDiagA( void ){
 	#pragma acc loop independent
 	#pragma omp parallel for
 	for(int iRow=0;iRow<N;++iRow){
-		InvDiagA[iRow] = 0.0;
+		InvDiagA[iRow] = -1.0*__LINE__;;
 	}
 	
 	#pragma acc kernels present(InvDiagA[0:N], CsrPtrA[0:N+1],CsrIndA[0:NonzeroCountA],CsrCofA[0:NonzeroCountA])
 	#pragma acc loop independent
 	#pragma omp parallel for 
 	for(int iRow=0;iRow<N;++iRow){
+		double sumCof=0.0;
 		#pragma acc loop seq
+
 		for(long int iNonzero=CsrPtrA[iRow];iNonzero<CsrPtrA[iRow+1];++iNonzero){
 			if(CsrIndA[iNonzero]==iRow){
 				if(CsrCofA[iNonzero]!=0.0){
@@ -3066,6 +3063,7 @@ static void calculateInvDiagA( void ){
 			}
 		}
 	}
+	
 }
 
 static void calculateMultiGridCsrR( void ){
@@ -3545,7 +3543,6 @@ static void calculateMultiGridInvDiagA( void ){
 	}
 }
 
-
 static void freeMultiGridMatrix( void ){
 	
 	free(MultiGridCellMin);
@@ -3762,7 +3759,7 @@ static void preconditionWithMultiGrid(cublasHandle_t cublas, cusparseHandle_t cu
 			
 			mycublasDscal( cublas, NL, 0.0, &MultiGridVecS[offsetL]);
 			mycublasDcopy( cublas, NL, &MultiGridVecQ[offsetL], &MultiGridVecR[offsetL] );
-			for(int iter=0;iter<3;++iter){
+			for(int iter=0;iter<2;++iter){
 				mycublasDdmv( cublas, NL, 1.0, &MultiGridInvDiagA[offsetInvDiagA], &MultiGridVecR[offsetL], 1.0, &MultiGridVecS[offsetL]);
 				mycublasDcopy( cublas, NL, &MultiGridVecQ[offsetL], &MultiGridVecR[offsetL] );
 				myDcsrmv( cusparse, NL, NL, MultiGridCsrNnzA[iPower], -1.0, &MultiGridCsrCofA[offsetIndA], &MultiGridCsrPtrA[offsetPtrA], &MultiGridCsrIndA[offsetIndA], &MultiGridVecS[offsetL], 1.0, &MultiGridVecR[offsetL]);
@@ -3790,7 +3787,7 @@ static void preconditionWithMultiGrid(cublasHandle_t cublas, cusparseHandle_t cu
 			
 			mycublasDscal( cublas, NL, 0.0, &MultiGridVecS[offsetL] );
 			mycublasDcopy( cublas, NL, &MultiGridVecQ[offsetL], &MultiGridVecR[offsetL] );
-			for(int iter=0;iter<4;++iter){
+			for(int iter=0;iter<3;++iter){
 				mycublasDdmv( cublas, NL, 1.0, &MultiGridInvDiagA[offsetInvDiagA], &MultiGridVecR[offsetL], 1.0, &MultiGridVecS[offsetL]);
 				mycublasDcopy( cublas, NL, &MultiGridVecQ[offsetL], &MultiGridVecR[offsetL] );
 
@@ -3814,7 +3811,7 @@ static void preconditionWithMultiGrid(cublasHandle_t cublas, cusparseHandle_t cu
 			const int NS = DIM*gridCountS[0]*gridCountS[1]*gridCountS[2];
 			const int NL = DIM*gridCountL[0]*gridCountL[1]*gridCountL[2];
 			
-			for(int iter=0;iter<3;++iter){
+			for(int iter=0;iter<2;++iter){
 				mycublasDcopy( cublas, NL, &MultiGridVecQ[offsetL], &MultiGridVecR[offsetL] );
 				myDcsrmv( cusparse, NL, NL, MultiGridCsrNnzA[iPower], -1.0, &MultiGridCsrCofA[offsetIndA], &MultiGridCsrPtrA[offsetPtrA], &MultiGridCsrIndA[offsetIndA], &MultiGridVecS[offsetL], 1.0, &MultiGridVecR[offsetL]);
 				mycublasDdmv( cublas, NL, 1.0, &MultiGridInvDiagA[offsetInvDiagA], &MultiGridVecR[offsetL], 1.0, &MultiGridVecS[offsetL]);
@@ -3914,21 +3911,15 @@ static void solveWithConjugatedGradient(void){
 			mydevDset( AllGridSizeVecQ, -1.0*__LINE__, MultiGridVecQ );
 		}
 		
-		#ifdef MULTIGRID_SOLVER
 		preconditionWithMultiGrid(cublas,cusparse, b, s, buf );
-		#else
-		cublasDcopy(cublas,N,b,1,s,1);
-		#endif
+		//cublasDcopy(cublas,N,b,1,s,1);
 		cublasDdot(cublas,N,b,1,s,1,&rs0);
 		cublasDdot(cublas,N,b,1,b,1,&rr0);
 		
 		cublasDcopy(cublas,N,b,1,r,1);
 		mycusparseDcsrmv(cusparse,N,N,NonzeroCountA,-1.0,CsrCofA,CsrPtrA,CsrIndA,x,1.0,r);
-		#ifdef MULTIGRID_SOLVER
 		preconditionWithMultiGrid(cublas,cusparse, r, s, buf );
-		#else
-		cublasDcopy(cublas,N,r,1,s,1);
-		#endif
+		//cublasDcopy(cublas,N,r,1,s,1);
 		
 		for(iter=0;iter<N;++iter){
 			cublasDdot(cublas,N,r,1,r,1,&rr);
@@ -3952,11 +3943,8 @@ static void solveWithConjugatedGradient(void){
 				cublasDscal(cublas,N,&beta,q,1);
 				cublasDaxpy(cublas,N,&one,y,1,q,1);
 			}
-			#ifdef MULTIGRID_SOLVER
 			preconditionWithMultiGrid(cublas,cusparse, q, u, buf ); 
-			#else
-			cublasDcopy(cublas,N,q,1,u,1);
-			#endif
+			//cublasDcopy(cublas,N,q,1,u,1);
 			cublasDdot(cublas,N,q,1,u,1,&tmp);
 			alpha =rho/tmp;
 			cublasDaxpy(cublas,N,&alpha,p,1,x,1);
@@ -3973,11 +3961,8 @@ static void solveWithConjugatedGradient(void){
 			#ifdef CONVERGENCE_CHECK
 			cublasDcopy(cublas,N,b,1,r,1);
 			mycusparseDcsrmv(cusparse,N,N,NonzeroCountA,-1.0,CsrCofA,CsrPtrA,CsrIndA,x,1.0,r);
-			#ifdef MULTIGRID_SOLVER
 			preconditionWithMultiGrid(cublas,cusparse, r, s, buf );
-			#else
-			cublasDcopy(cublas,N,r,1,s,1);
-			#endif
+			//cublasDcopy(cublas,N,r,1,s,1);
 			cublasDdot(cublas,N,r,1,r,1,&rr);
 			cublasDdot(cublas,N,r,1,s,1,&rs);
 			log_printf("line:%d, iter,=%d, rr0=,%e, rr=,%e, rs0=,%e, rs=,%e\n",__LINE__,iter,rr0,rr,rs0,rs);
@@ -4186,7 +4171,7 @@ static void preconditionWithMultiGrid( const double *q, double *s, double *r ){ 
 			
 			myDscal( NL, 0.0, &MultiGridVecS[offsetL] );
 			myDcopy( NL, &MultiGridVecQ[offsetL], &MultiGridVecR[offsetL] );
-			for(int iter=0;iter<3;++iter){
+			for(int iter=0;iter<2;++iter){
 				myDdmv( NL, 1.0, &MultiGridInvDiagA[offsetInvDiagA], &MultiGridVecR[offsetL], 1.0, &MultiGridVecS[offsetL]);
 				myDcopy( NL, &MultiGridVecQ[offsetL], &MultiGridVecR[offsetL] );
 				myDcsrmv( NL, NL, MultiGridCsrNnzA[iPower], -1.0, &MultiGridCsrCofA[offsetIndA], &MultiGridCsrPtrA[offsetPtrA], &MultiGridCsrIndA[offsetIndA], &MultiGridVecS[offsetL], 1.0, &MultiGridVecR[offsetL]);
@@ -4213,7 +4198,7 @@ static void preconditionWithMultiGrid( const double *q, double *s, double *r ){ 
 			
 			myDscal( NL, 0.0, &MultiGridVecS[offsetL] );
 			myDcopy( NL, &MultiGridVecQ[offsetL], &MultiGridVecR[offsetL] );
-			for(int iter=0;iter<4;++iter){
+			for(int iter=0;iter<3;++iter){
 				myDdmv( NL, 1.0, &MultiGridInvDiagA[offsetInvDiagA], &MultiGridVecR[offsetL], 1.0, &MultiGridVecS[offsetL]);
 				myDcopy( NL, &MultiGridVecQ[offsetL], &MultiGridVecR[offsetL] );
 				myDcsrmv( NL, NL, MultiGridCsrNnzA[iPower], -1.0, &MultiGridCsrCofA[offsetIndA], &MultiGridCsrPtrA[offsetPtrA], &MultiGridCsrIndA[offsetIndA], &MultiGridVecS[offsetL], 1.0, &MultiGridVecR[offsetL]);
@@ -4235,7 +4220,7 @@ static void preconditionWithMultiGrid( const double *q, double *s, double *r ){ 
 			const int NS = DIM*gridCountS[0]*gridCountS[1]*gridCountS[2];
 			const int NL = DIM*gridCountL[0]*gridCountL[1]*gridCountL[2];
 			
-			for(int iter=0;iter<3;++iter){
+			for(int iter=0;iter<2;++iter){
 				myDcopy( NL, &MultiGridVecQ[offsetL], &MultiGridVecR[offsetL] );
 				myDcsrmv( NL, NL, MultiGridCsrNnzA[iPower], -1.0, &MultiGridCsrCofA[offsetIndA], &MultiGridCsrPtrA[offsetPtrA], &MultiGridCsrIndA[offsetIndA], &MultiGridVecS[offsetL], 1.0, &MultiGridVecR[offsetL]);
 				myDdmv( NL, 1.0, &MultiGridInvDiagA[offsetInvDiagA], &MultiGridVecR[offsetL], 1.0, &MultiGridVecS[offsetL]);
@@ -4325,6 +4310,7 @@ static void solveWithConjugatedGradient(void){
 			myDset( AllGridSizeVecR, -1.0*__LINE__, MultiGridVecR );
 			myDset( AllGridSizeVecQ, -1.0*__LINE__, MultiGridVecQ );
 		}
+
 		#ifdef MULTIGRID_SOLVER
 		preconditionWithMultiGrid( b, s, buf );
 		#else
@@ -4332,14 +4318,20 @@ static void solveWithConjugatedGradient(void){
 		#endif
 		myDdot( N, b, s, &rs0 );
 		myDdot( N, b, b, &rr0 );
+		if(!(rs0==rs0)){
+			log_printf("line:%d, rs0=%e\n",__LINE__,rs0);
+			checkMultiGridMatrix();
+		}
 		
 		myDcopy( N, b, r );	
 		myDcsrmvForA( N, N, NonzeroCountA, -1.0, CsrCofA, CsrPtrA, CsrIndA, x, 1.0, r );
+
 		#ifdef MULTIGRID_SOLVER
 		preconditionWithMultiGrid( r, s, buf );
 		#else
 		myDcopy( N, r, s );
 		#endif
+
 		
 		for(iter=0;iter<N;++iter){
 			myDdot( N, r, r, &rr );
@@ -4363,11 +4355,13 @@ static void solveWithConjugatedGradient(void){
 				myDscal( N, beta, q );
 				myDaxpy( N, 1.0, y, q );
 			}
+      
 			#ifdef MULTIGRID_SOLVER
 			preconditionWithMultiGrid( q, u, buf );
 			#else
 			myDcopy( N, q, u );
 			#endif
+      
 			myDdot( N, q, u, &tmp );
 			alpha =rho/tmp;
 			myDaxpy( N, alpha, p, x );
@@ -4385,6 +4379,7 @@ static void solveWithConjugatedGradient(void){
 	{
 		myDcopy( N, b, r );	
 		myDcsrmvForA( N, N, NonzeroCountA, -1.0, CsrCofA, CsrPtrA, CsrIndA, x, 1.0, r );
+
 		#ifdef MULTIGRID_SOLVER
 		preconditionWithMultiGrid( r, s, buf );
 		#else
