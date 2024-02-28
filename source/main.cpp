@@ -1183,7 +1183,7 @@ static void calculateCellParticle()
 {
 	// store and sort with cells
 	
-	#pragma acc kernels
+	#pragma acc kernels present(Position[0:ParticleCount][0:DIM],CellIndex[0:PowerParticleCount],CellParticle[0:PowerParticleCount],Property[0:ParticleCount])
 	#pragma acc loop independent
 	#pragma omp parallel for
 	for(int iP=0; iP<PowerParticleCount; ++iP){
@@ -1229,7 +1229,7 @@ static void calculateCellParticle()
 	}
 	
 	// search for CellFluidParticleBegin[iC]
-	#pragma acc kernels 
+	#pragma acc kernels present(CellFluidParticleBegin[0:TotalCellCount],CellFluidParticleEnd[0:TotalCellCount],CellWallParticleBegin[0:TotalCellCount],CellWallParticleEnd[0:TotalCellCount])
 	#pragma acc loop independent
 	#pragma omp parallel for
 	for(int iC=0;iC<TotalCellCount;++iC){
@@ -1331,33 +1331,33 @@ static void calculateCellParticle()
 	// fprintf(stderr,"line:%d, FluidParticleBegin=%d, FluidParticleEnd=%d, WallParticleBegin=%d, WallParticleEnd=%d\n",__LINE__,FluidParticleBegin, FluidParticleEnd, WallParticleBegin, WallParticleEnd);
 	
 	// re-arange particles in CellIndex order
-	#pragma acc kernels present(ParticleIndex[0:ParticleCount])
+	#pragma acc kernels present(ParticleIndex[0:ParticleCount],TmpIntScalar[0:ParticleCount],CellParticle[0:PowerParticleCount])
 	#pragma acc loop independent
 	#pragma omp parallel for
 	for(int iP=0;iP<ParticleCount;++iP){
 		TmpIntScalar[iP]=ParticleIndex[CellParticle[iP]];
 	}
-	#pragma acc kernels
+	#pragma acc kernels present(ParticleIndex[0:ParticleCount],TmpIntScalar[0:ParticleCount])
 	#pragma acc loop independent
 	#pragma omp parallel for
 	for(int iP=0;iP<ParticleCount;++iP){
 		ParticleIndex[iP]=TmpIntScalar[iP];
 	}
 	
-	#pragma acc kernels present(Property[0:ParticleCount])
+	#pragma acc kernels present(Property[0:ParticleCount],TmpIntScalar[0:ParticleCount],CellParticle[0:PowerParticleCount])
 	#pragma acc loop independent
 	#pragma omp parallel for
 	for(int iP=0;iP<ParticleCount;++iP){
 		TmpIntScalar[iP]=Property[CellParticle[iP]];
 	}
-	#pragma acc kernels
+	#pragma acc kernels present(Property[0:ParticleCount],TmpIntScalar[0:ParticleCount])
 	#pragma acc loop independent
 	#pragma omp parallel for
 	for(int iP=0;iP<ParticleCount;++iP){
 		Property[iP]=TmpIntScalar[iP];
 	}
 	
-	#pragma acc kernels present(Position[0:ParticleCount][0:DIM])
+	#pragma acc kernels present(Position[0:ParticleCount][0:DIM], CellParticle[0:PowerParticleCount],TmpDoubleVector[0:ParticleCount][0:DIM], Position[0:ParticleCount][0:DIM])
 	#pragma acc loop independent
 	#pragma omp parallel for
 	for(int iP=0;iP<ParticleCount;++iP){
@@ -1366,7 +1366,7 @@ static void calculateCellParticle()
 			TmpDoubleVector[iP][iD]=Position[CellParticle[iP]][iD];
 		}
 	}
-	#pragma acc kernels
+	#pragma acc kernels present(Position[0:ParticleCount][0:DIM],TmpDoubleVector[0:ParticleCount][0:DIM])
 	#pragma acc loop independent
 	#pragma omp parallel for
 	for(int iP=0;iP<ParticleCount;++iP){
@@ -1376,7 +1376,7 @@ static void calculateCellParticle()
 		}
 	}
 		
-	#pragma acc kernels present(Velocity[0:ParticleCount][0:DIM])
+	#pragma acc kernels present(Velocity[0:ParticleCount][0:DIM],TmpDoubleVector[0:ParticleCount][0:DIM],CellParticle[0:PowerParticleCount])
 	#pragma acc loop independent
 	#pragma omp parallel for
 	for(int iP=0;iP<ParticleCount;++iP){
@@ -1385,7 +1385,7 @@ static void calculateCellParticle()
 			TmpDoubleVector[iP][iD]=Velocity[CellParticle[iP]][iD];
 		}
 	}
-	#pragma acc kernels present(Velocity[0:ParticleCount][0:DIM])
+	#pragma acc kernels present(Velocity[0:ParticleCount][0:DIM],TmpDoubleVector[0:ParticleCount][0:DIM])
 	#pragma acc loop independent
 	#pragma omp parallel for
 	for(int iP=0;iP<ParticleCount;++iP){
@@ -1395,13 +1395,13 @@ static void calculateCellParticle()
 		}
 	}
 	
-	#pragma acc kernels present(VirialPressureInsideRadius[0:ParticleCount])
+	#pragma acc kernels present(VirialPressureInsideRadius[0:ParticleCount],TmpDoubleScalar[0:ParticleCount],CellParticle[0:PowerParticleCount])
 	#pragma acc loop independent
 	#pragma omp parallel for
 	for(int iP=0;iP<ParticleCount;++iP){
 		TmpDoubleScalar[iP]=VirialPressureInsideRadius[CellParticle[iP]];
 	}
-	#pragma acc kernels
+	#pragma acc kernels present(VirialPressureInsideRadius[0:ParticleCount],TmpDoubleScalar[0:ParticleCount])
 	#pragma acc loop independent
 	#pragma omp parallel for
 	for(int iP=0;iP<ParticleCount;++iP){
@@ -1412,7 +1412,7 @@ static void calculateCellParticle()
 
 static void calculateNeighbor( void )
 {
-	#pragma acc kernels
+	#pragma acc kernels present(NeighborFluidCount[0:ParticleCount],NeighborCount[0:ParticleCount],NeighborCountP[0:ParticleCount])
 	#pragma acc loop independent
 	#pragma omp parallel for
 	for(int iP=0;iP<ParticleCount;++iP){
@@ -1434,7 +1434,7 @@ static void calculateNeighbor( void )
 	assert( 2*rangeY+1 <= MAX_1D_NEIGHBOR_CELL_COUNT );
 	assert( 2*rangeZ+1 <= MAX_1D_NEIGHBOR_CELL_COUNT );
 	
-	#pragma acc kernels present(CellParticle[0:PowerParticleCount],CellFluidParticleBegin[0:TotalCellCount],CellFluidParticleEnd[0:TotalCellCount],CellWallParticleBegin[0:TotalCellCount],CellWallParticleEnd[0:TotalCellCount],Position[0:ParticleCount][0:DIM])
+	#pragma acc kernels present(CellParticle[0:PowerParticleCount],CellFluidParticleBegin[0:TotalCellCount],CellFluidParticleEnd[0:TotalCellCount],CellWallParticleBegin[0:TotalCellCount],CellWallParticleEnd[0:TotalCellCount],Position[0:ParticleCount][0:DIM],CellIndex[0:PowerParticleCount])
 	#pragma acc loop independent
 	#pragma omp parallel for
 	for(int iP=0;iP<ParticleCount;++iP){
@@ -1543,7 +1543,7 @@ static void calculateNeighbor( void )
 		}
 	}
 	
-	#pragma acc kernels
+	#pragma acc kernels present(NeighborPtr[0:PowerParticleCount],NeighborPtrP[0:PowerParticleCount])
 	#pragma acc loop independent
 	#pragma omp parallel for
 	for(int iP=0;iP<PowerParticleCount;++iP){
@@ -1551,7 +1551,7 @@ static void calculateNeighbor( void )
 		NeighborPtrP[iP]=0;
 	}
 	
-	#pragma acc kernels
+	#pragma acc kernels present(NeighborPtr[0:PowerParticleCount],NeighborPtrP[0:PowerParticleCount],NeighborCount[0:ParticleCount],NeighborCountP[0:ParticleCount])
 	#pragma acc loop independent
 	#pragma omp parallel for
 	for(int iP=0;iP<ParticleCount;++iP){
@@ -1583,7 +1583,7 @@ static void calculateNeighbor( void )
 		}
 	}
 	
-	#pragma acc kernels present(NeighborPtr[0:PowerParticleCount],NeighborPtrP[0:PowerParticleCount])
+	#pragma acc kernels present(NeighborPtr[0:PowerParticleCount],NeighborPtrP[0:PowerParticleCount],NeighborCount,NeighborCountP)
 	{
 		NeighborIndCount = NeighborPtr[ParticleCount];
 		NeighborIndCountP= NeighborPtrP[ParticleCount];
@@ -1597,7 +1597,7 @@ static void calculateNeighbor( void )
 	#pragma acc enter data create(NeighborInd[0:NeighborIndCount])
 	#pragma acc enter data create(NeighborIndP[0:NeighborIndCountP])
 	
-	#pragma acc kernels present(CellParticle[0:PowerParticleCount],CellFluidParticleBegin[0:TotalCellCount],CellFluidParticleEnd[0:TotalCellCount],CellWallParticleBegin[0:TotalCellCount],CellWallParticleEnd[0:TotalCellCount],NeighborPtr[0:PowerParticleCount],NeighborPtrP[0:PowerParticleCount],NeighborInd[0:NeighborIndCount],NeighborIndP[0:NeighborIndCountP],Position[0:ParticleCount][0:DIM])
+	#pragma acc kernels present(CellParticle[0:PowerParticleCount],CellFluidParticleBegin[0:TotalCellCount],CellFluidParticleEnd[0:TotalCellCount],CellWallParticleBegin[0:TotalCellCount],CellWallParticleEnd[0:TotalCellCount],NeighborPtr[0:PowerParticleCount],NeighborPtrP[0:PowerParticleCount],NeighborInd[0:NeighborIndCount],NeighborIndP[0:NeighborIndCountP],Position[0:ParticleCount][0:DIM],CellIndex[0:PowerParticleCount],NeighborCount[0:ParticleCount])
 	#pragma acc loop independent
 	#pragma omp parallel for
 	for(int iP=0;iP<ParticleCount;++iP){
@@ -1724,7 +1724,7 @@ static void calculateConvection()
 
 static void resetForce()
 {
-	#pragma acc kernels
+	#pragma acc kernels present(Force[0:ParticleCount][0:DIM])
 	#pragma acc loop independent
 	#pragma omp parallel for
     for(int iP=0;iP<ParticleCount;++iP){
@@ -1738,7 +1738,7 @@ static void resetForce()
 
 static void calculatePhysicalCoefficients()
 {	
-	#pragma acc kernels
+	#pragma acc kernels present(Mass[0:ParticleCount],Density[0:TYPE_COUNT],Kappa[0:ParticleCount],Lambda[0:ParticleCount],YieldStress[0:ParticleCount],SolidFaceYieldStress[0:ParticleCount],VolStrainP[0:ParticleCount],VirialPressureInsideRadius[0:ParticleCount],Property[0:ParticleCount],BulkModulus[0:TYPE_COUNT],BulkViscosity[0:TYPE_COUNT],BulkViscosityInExpansion[0:TYPE_COUNT],MohrCoulombInterceptC[0:TYPE_COUNT],MohrCoulombFrictionAnglePhi[0:TYPE_COUNT],SolidFaceMohrCoulombInterceptC,SolidFaceMohrCoulombFrictionAnglePhi)
 	#pragma acc loop independent
 	#pragma omp parallel for
 	for(int iP=0;iP<ParticleCount;++iP){
@@ -1746,7 +1746,7 @@ static void calculatePhysicalCoefficients()
 		Mass[iP]=Density[iType]*ParticleVolume;
 	}
 	
-	#pragma acc kernels
+	#pragma acc kernels present(Mass[0:ParticleCount],Density[0:TYPE_COUNT],Kappa[0:ParticleCount],Lambda[0:ParticleCount],YieldStress[0:ParticleCount],SolidFaceYieldStress[0:ParticleCount],VolStrainP[0:ParticleCount],VirialPressureInsideRadius[0:ParticleCount],Property[0:ParticleCount],BulkModulus[0:TYPE_COUNT],BulkViscosity[0:TYPE_COUNT],BulkViscosityInExpansion[0:TYPE_COUNT],MohrCoulombInterceptC[0:TYPE_COUNT],MohrCoulombFrictionAnglePhi[0:TYPE_COUNT],SolidFaceMohrCoulombInterceptC,SolidFaceMohrCoulombFrictionAnglePhi)
 	#pragma acc loop independent
 	#pragma omp parallel for
 	for(int iP=0;iP<ParticleCount;++iP){
@@ -1755,7 +1755,7 @@ static void calculatePhysicalCoefficients()
 		if(VolStrainP[iP]<0.0){Kappa[iP]=0.0;}
 	}
 	
-	#pragma acc kernels
+	#pragma acc kernels present(Mass[0:ParticleCount],Density[0:TYPE_COUNT],Kappa[0:ParticleCount],Lambda[0:ParticleCount],YieldStress[0:ParticleCount],SolidFaceYieldStress[0:ParticleCount],VolStrainP[0:ParticleCount],VirialPressureInsideRadius[0:ParticleCount],Property[0:ParticleCount],BulkModulus[0:TYPE_COUNT],BulkViscosity[0:TYPE_COUNT],BulkViscosityInExpansion[0:TYPE_COUNT],MohrCoulombInterceptC[0:TYPE_COUNT],MohrCoulombFrictionAnglePhi[0:TYPE_COUNT],SolidFaceMohrCoulombInterceptC,SolidFaceMohrCoulombFrictionAnglePhi)
 	#pragma acc loop independent
 	#pragma omp parallel for
 	for(int iP=0;iP<ParticleCount;++iP){
@@ -1766,7 +1766,7 @@ static void calculatePhysicalCoefficients()
 		}
 	}
 	
-	#pragma acc kernels
+	#pragma acc kernels present(Mass[0:ParticleCount],Density[0:TYPE_COUNT],Kappa[0:ParticleCount],Lambda[0:ParticleCount],YieldStress[0:ParticleCount],SolidFaceYieldStress[0:ParticleCount],VolStrainP[0:ParticleCount],VirialPressureInsideRadius[0:ParticleCount],Property[0:ParticleCount],BulkModulus[0:TYPE_COUNT],BulkViscosity[0:TYPE_COUNT],BulkViscosityInExpansion[0:TYPE_COUNT],MohrCoulombInterceptC[0:TYPE_COUNT],MohrCoulombFrictionAnglePhi[0:TYPE_COUNT],SolidFaceMohrCoulombInterceptC,SolidFaceMohrCoulombFrictionAnglePhi)
 	#pragma acc loop independent
 	#pragma omp parallel for
 	for(int iP=0;iP<ParticleCount;++iP){ // yield stress
@@ -1776,7 +1776,7 @@ static void calculatePhysicalCoefficients()
 		const double phi = MohrCoulombFrictionAnglePhi[ iType ];
 		YieldStress[iP] = c + ((p>0.0) ? p:0.0) * tan(M_PI/180.0*phi);
 	}
-	#pragma acc kernels
+	#pragma acc kernels present(Mass[0:ParticleCount],Density[0:TYPE_COUNT],Kappa[0:ParticleCount],Lambda[0:ParticleCount],YieldStress[0:ParticleCount],SolidFaceYieldStress[0:ParticleCount],VolStrainP[0:ParticleCount],VirialPressureInsideRadius[0:ParticleCount],Property[0:ParticleCount],BulkModulus[0:TYPE_COUNT],BulkViscosity[0:TYPE_COUNT],BulkViscosityInExpansion[0:TYPE_COUNT],MohrCoulombInterceptC[0:TYPE_COUNT],MohrCoulombFrictionAnglePhi[0:TYPE_COUNT],SolidFaceMohrCoulombInterceptC,SolidFaceMohrCoulombFrictionAnglePhi)
 	#pragma acc loop independent
 	#pragma omp parallel for
 	for(int iP=0;iP<ParticleCount;++iP){ // yield stress
@@ -1785,14 +1785,14 @@ static void calculatePhysicalCoefficients()
 		const double phif = SolidFaceMohrCoulombFrictionAnglePhi;
 		SolidFaceYieldStress[iP] = cf + ((p>0.0) ? p:0.0) * tan(M_PI/180.0*phif);
 	}
-	#pragma acc kernels present(Property[0:ParticleCount],Position[0:ParticleCount][0:DIM],Velocity[0:ParticleCount][0:DIM],NeighborIndP[0:NeighborIndCountP])
+	#pragma acc kernels present(Property[0:ParticleCount],Position[0:ParticleCount][0:DIM],Velocity[0:ParticleCount][0:DIM],NeighborIndP[0:NeighborIndCountP],ShearRate[0:ParticleCount])
 	#pragma acc loop independent
 	#pragma omp parallel for
 	for(int iP=0;iP<ParticleCount;++iP){ // shear rate
 		double strainrate[DIM][DIM] = {{0.0,0.0,0.0},{0.0,0.0,0.0},{0.0,0.0,0.0}};
 		#pragma acc loop seq
-		for(int jN=0;jN<NeighborCountP[iP];++jN){  //NeighborCountPã«ãŠãã‹ãˆ
-			const int jP=NeighborIndP[ NeighborPtrP[iP]+jN ]; //IndP, PtrPã«ãŠãã‹ãˆ
+		for(int jN=0;jN<NeighborCountP[iP];++jN){  //NeighborCountPï¿½É‚ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+			const int jP=NeighborIndP[ NeighborPtrP[iP]+jN ]; //IndP, PtrPï¿½É‚ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 			if(iP==jP)continue;
             double xij[DIM];
 			#pragma acc loop seq
@@ -1831,7 +1831,7 @@ static void calculatePhysicalCoefficients()
 		ShearRate[iP]=sqrt(2.0*ss);
 	}
 	
-	#pragma acc kernels
+	#pragma acc kernels present(Property[0:ParticleCount],ShearRate[0:ParticleCount],Mu[0:ParticleCount],YieldStress[0:ParticleCount])
 	#pragma acc loop independent
 	#pragma omp parallel for
 	for(int iP=0;iP<ParticleCount;++iP){ // viscosity
@@ -1844,7 +1844,7 @@ static void calculatePhysicalCoefficients()
 		Mu[iP] = k * pow(gamma,(n-1)) + (YieldStress[iP]/gamma)*(1.0-exp(-m*gamma));
 	}
 	
-	#pragma acc kernels
+	#pragma acc kernels present(Mu[0:ParticleCount],Muf[0:ParticleCount],SolidFaceYieldStress[0:ParticleCount],ShearRate[0:ParticleCount],Property[0:ParticleCount])
 	#pragma acc loop independent
 	#pragma omp parallel for
 	for(int iP=0;iP<ParticleCount;++iP){ // inter-solid viscosity
@@ -1864,7 +1864,7 @@ static void calculatePhysicalCoefficients()
 
 static void calculateDensityA()
 {
-	#pragma acc kernels present(Property[0:ParticleCount],Position[0:ParticleCount][0:DIM],NeighborInd[0:NeighborIndCount])
+	#pragma acc kernels present(Property[0:ParticleCount],Position[0:ParticleCount][0:DIM],NeighborInd[0:NeighborIndCount],DensityA[0:ParticleCount])
 	#pragma acc loop independent
 	#pragma omp parallel for
 	for(int iP=0;iP<ParticleCount;++iP){
@@ -1899,7 +1899,7 @@ static void calculateDensityA()
 
 static void calculateGravityCenter()
 {
-	#pragma acc kernels present(Property[0:ParticleCount],Position[0:ParticleCount][0:DIM],NeighborInd[0:NeighborIndCount])
+	#pragma acc kernels present(Property[0:ParticleCount],Position[0:ParticleCount][0:DIM],NeighborInd[0:NeighborIndCount],GravityCenter[0:ParticleCount])
 	#pragma acc loop independent
 	#pragma omp parallel for
 	for(int iP=0;iP<ParticleCount;++iP){
@@ -1939,7 +1939,7 @@ static void calculateGravityCenter()
 static void calculatePressureA()
 {
 
-	#pragma acc kernels present(Property[0:ParticleCount],Position[0:ParticleCount][0:DIM])
+	#pragma acc kernels present(Property[0:ParticleCount],Position[0:ParticleCount][0:DIM],PressureA[0:ParticleCount],DensityA[0:ParticleCount])
 	#pragma acc loop independent
 	#pragma omp parallel for
 	for(int iP=0;iP<ParticleCount;++iP){
@@ -1950,7 +1950,7 @@ static void calculatePressureA()
 		}
 	}
 	
-	#pragma acc kernels present(Property[0:ParticleCount],Position[0:ParticleCount][0:DIM],PressureA[0:ParticleCount],NeighborInd[0:NeighborIndCount])
+	#pragma acc kernels present(Property[0:ParticleCount],Position[0:ParticleCount][0:DIM],PressureA[0:ParticleCount],NeighborInd[0:NeighborIndCount],Force[0:ParticleCount][0:DIM])
 	#pragma acc loop independent
 	#pragma omp parallel for
     for(int iP=0;iP<ParticleCount;++iP){
@@ -1995,7 +1995,7 @@ static void calculatePressureA()
 
 static void calculateDiffuseInterface()
 {
-	#pragma acc kernels present(Property[0:ParticleCount],Position[0:ParticleCount][0:DIM],GravityCenter[0:ParticleCount][0:DIM],NeighborInd[0:NeighborIndCount])
+	#pragma acc kernels present(Property[0:ParticleCount],Position[0:ParticleCount][0:DIM],GravityCenter[0:ParticleCount][0:DIM],NeighborInd[0:NeighborIndCount],Force[0:ParticleCount])
 	#pragma acc loop independent
 	#pragma omp parallel for
 	for(int iP=0;iP<ParticleCount;++iP){
@@ -2056,7 +2056,7 @@ static void calculateDiffuseInterface()
 static void calculateDensityP()
 {
 	
-	#pragma acc kernels present(Property[0:ParticleCount],Position[0:ParticleCount][0:DIM],NeighborIndP[0:NeighborIndCountP])
+	#pragma acc kernels present(Property[0:ParticleCount],Position[0:ParticleCount][0:DIM],NeighborIndP[0:NeighborIndCountP],VolStrainP[0:ParticleCount])
 	#pragma acc loop independent
 	#pragma omp parallel for
 	for(int iP=0;iP<ParticleCount;++iP){
@@ -2092,7 +2092,7 @@ static void calculateDensityP()
 static void calculateDivergenceP()
 {
 
-	#pragma acc kernels present(Property[0:ParticleCount],Position[0:ParticleCount][0:DIM],Velocity[0:ParticleCount][0:DIM],NeighborIndP[0:NeighborIndCountP])
+	#pragma acc kernels present(Property[0:ParticleCount],Position[0:ParticleCount][0:DIM],Velocity[0:ParticleCount][0:DIM],NeighborIndP[0:NeighborIndCountP],DivergenceP[0:ParticleCount])
 	#pragma acc loop independent
 	#pragma omp parallel for
 	for(int iP=0;iP<ParticleCount;++iP){
@@ -2130,7 +2130,7 @@ static void calculateDivergenceP()
 
 static void calculatePressureP()
 {
-	#pragma acc kernels 
+	#pragma acc kernels present(Kappa[0:ParticleCount],Lambda[0:ParticleCount],DivergenceP[0:ParticleCount],VolStrainP[0:ParticleCount],PressureP[0:ParticleCount])
 	#pragma acc loop independent
 	#pragma omp parallel for
 	for(int iP=0;iP<ParticleCount;++iP){
@@ -2140,7 +2140,7 @@ static void calculatePressureP()
 		}
 	}
 	
-	#pragma acc kernels present(Property[0:ParticleCount],Position[0:ParticleCount][0:DIM],PressureP[0:ParticleCount],NeighborIndP[0:NeighborIndCountP])
+	#pragma acc kernels present(Property[0:ParticleCount],Position[0:ParticleCount][0:DIM],PressureP[0:ParticleCount],NeighborIndP[0:NeighborIndCountP],Force[0:ParticleCount][0:DIM])
 	#pragma acc loop independent
 	#pragma omp parallel for
 	for(int iP=0;iP<ParticleCount;++iP){
@@ -2176,7 +2176,7 @@ static void calculatePressureP()
 
 static void calculateViscosityV(){
 
-	#pragma acc kernels present(Property[0:ParticleCount],Position[0:ParticleCount][0:DIM],Velocity[0:ParticleCount][0:DIM],Mu[0:ParticleCount],Muf[0:ParticleCount],NeighborInd[0:NeighborIndCount])
+	#pragma acc kernels present(Property[0:ParticleCount],Position[0:ParticleCount][0:DIM],Velocity[0:ParticleCount][0:DIM],Mu[0:ParticleCount],Muf[0:ParticleCount],NeighborInd[0:NeighborIndCount],Force[0:ParticleCount][0:DIM])
 	#pragma acc loop independent
 	#pragma omp parallel for
 	for(int iP=0;iP<ParticleCount;++iP){
@@ -2232,7 +2232,7 @@ static void calculateViscosityV(){
 }
 
 static void calculateGravity(){
-	#pragma acc kernels
+	#pragma acc kernels present(Mass[0:ParticleCount],Force[0:ParticleCount][0:DIM])
 	#pragma acc loop independent
 	#pragma omp parallel for
 	for(int iP=FluidParticleBegin;iP<FluidParticleEnd;++iP){
@@ -2244,7 +2244,7 @@ static void calculateGravity(){
 
 static void calculateAcceleration()
 {
-	#pragma acc kernels
+	#pragma acc kernels present(Mass[0:ParticleCount],Force[0:ParticleCount][0:DIM])
 	#pragma acc loop independent
 	#pragma omp parallel for
 	for(int iP=FluidParticleBegin;iP<FluidParticleEnd;++iP){
@@ -2266,7 +2266,7 @@ static void calculateWall()
         Force[iP][2] = 0.0;
     }
 	
-	#pragma acc kernels
+	#pragma acc kernels present(Property[0:ParticleCount])
 	#pragma acc loop independent
 	#pragma omp parallel for
 	for(int iP=WallParticleBegin;iP<WallParticleEnd;++iP){
@@ -2299,7 +2299,7 @@ static void calculateWall()
 static long int NonzeroCountA;
 static double       *CsrCofA;  // [ FluidCount * DIM x NeighFluidCount * DIM]
 static int          *CsrIndA;  // [ FluidCount * DIM x NeighFluidCount * DIM]
-static long int *CsrPtrA;  // [ FluidCount * DIM + 1 ] NeighborFluidCount‚ÌÏŽZ—ñ‚Æ‚µ‚ÄŒvŽZ‰Â
+static long int *CsrPtrA;  // [ FluidCount * DIM + 1 ] NeighborFluidCount?ï¿½ï¿½ÌÏŽZ?ï¿½ï¿½?ï¿½ï¿½Æ‚ï¿½?ï¿½ï¿½ÄŒv?ï¿½ï¿½Z?ï¿½ï¿½?ï¿½ï¿½
 static double *VectorB;  // [ FluidCount * DIM ]
 #pragma acc declare create(NonzeroCountA,CsrCofA,CsrIndA,CsrPtrA,VectorB)
 
@@ -2526,7 +2526,7 @@ static void freeMatrixA( void ){
 static long int  NonzeroCountC;
 static double       *CsrCofC; // [ FluidCount * DIM x NeighCount ]
 static int          *CsrIndC; // [ FluidCount * DIM x NeighCount ]
-static long int *CsrPtrC; // [ FluidCount * DIM + 1 ] NeighCount‚ÌÏŽZ—ñ
+static long int *CsrPtrC; // [ FluidCount * DIM + 1 ] NeighCount?ï¿½ï¿½ÌÏŽZ?ï¿½ï¿½?ï¿½ï¿½
 static double *VectorP; // [ ParticleCount ]
 #pragma acc declare create(NonzeroCountC, CsrCofC,CsrIndC,CsrPtrC,VectorP)
 
@@ -2631,7 +2631,7 @@ static void calculateMatrixC( void )
 //		CsrCofC[ iNonzero ] = 0.0;
 //	}
 	
-	#pragma acc kernels
+	#pragma acc kernels present(VectorP[0:ParticleCount])
 	#pragma acc loop independent
 	#pragma omp parallel for
 	for(int iP=0;iP<ParticleCount;++iP){
@@ -2686,7 +2686,7 @@ static void calculateMatrixC( void )
 	}
 
 	// set vector P
-	#pragma acc kernels present(Property[0:ParticleCount],r[0:ParticleCount][0:DIM],v[0:ParticleCount][0:DIM],Lambda[0:ParticleCount],NeighborIndP[0:NeighborIndCountP])
+	#pragma acc kernels present(Property[0:ParticleCount],r[0:ParticleCount][0:DIM],v[0:ParticleCount][0:DIM],Lambda[0:ParticleCount],NeighborIndP[0:NeighborIndCountP],VectorP[0:ParticleCount],Kappa[0:ParticleCount],VolStrainP[0:ParticleCount])
 	#pragma acc loop independent
 	#pragma omp parallel for
 	for(int iP=0;iP<ParticleCount;++iP){			
@@ -2762,7 +2762,7 @@ static void multiplyMatrixC( void )
 		}
 	}
 	
-	// A = A + Cƒ©C^T
+	// A = A + C^C^T
 	#pragma acc kernels present(CsrPtrA[0:N],CsrIndA[0:NonzeroCountA],CsrCofA[0:NonzeroCountA],CsrPtrC[0:N],CsrIndC[0:NonzeroCountC],CsrCofC[0:NonzeroCountC],NeighborInd[0:NeighborIndCount],NeighborPtrP[0:PowerParticleCount],NeighborIndP[0:NeighborIndCountP],NeighborCountP[0:ParticleCount],Lambda[0:ParticleCount])
 	#pragma acc loop independent
 	#pragma omp parallel for
@@ -2831,7 +2831,7 @@ static int (*MultiGridCellMax)[DIM];
 static int (*MultiGridCount)[DIM];
 #pragma acc declare create(MultiGridCellMin,MultiGridCellMax,MultiGridCount)
 
-static int  (*MultiGridOffset); //‚±‚±‚É‰½ŒÂ–Ú‚ÌGrid‚©‚ç‚ªiPower‚ÌŠK‘w‚©‚ðŽ¦‚·
+static int  (*MultiGridOffset); //?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½É‰ï¿½?ï¿½ï¿½Â–Ú‚ï¿½Grid?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½ç‚ªiPower?ï¿½ï¿½ÌŠK?ï¿½ï¿½w?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½
 #pragma acc declare create(MultiGridOffset)
 
 static int TotalTopGridCount;
@@ -4226,7 +4226,7 @@ static void calculateVirialPressureInsideRadius()
 {
 	const double (*x)[DIM] = Position;
 	
-	#pragma acc kernels present(Property[0:ParticleCount],x[0:ParticleCount][0:DIM],VirialPressureAtParticle[0:ParticleCount],NeighborIndP[0:NeighborIndCountP])
+	#pragma acc kernels present(Property[0:ParticleCount],x[0:ParticleCount][0:DIM],VirialPressureAtParticle[0:ParticleCount],NeighborIndP[0:NeighborIndCountP],VirialPressureInsideRadius[0:ParticleCount])
 	#pragma acc loop independent
 	#pragma omp parallel for
 	for(int iP=0;iP<ParticleCount;++iP){
@@ -4258,7 +4258,7 @@ static void calculateVirialStressAtParticle()
 	const double (*x)[DIM] = Position;
 	const double (*v)[DIM] = Velocity;	
 	
-	#pragma acc kernels 
+	#pragma acc kernels present(VirialStressAtParticle[0:ParticleCount][0:DIM][0:DIM])
 	#pragma acc loop independent
 	#pragma omp parallel for
 	for(int iP=0;iP<ParticleCount;++iP){
@@ -4271,7 +4271,7 @@ static void calculateVirialStressAtParticle()
 		}
 	}
 	
-	#pragma acc kernels present(x[0:ParticleCount][0:DIM],NeighborIndP[0:NeighborIndCountP])
+	#pragma acc kernels present(x[0:ParticleCount][0:DIM],NeighborIndP[0:NeighborIndCountP],VirialStressAtParticle[0:ParticleCount][0:DIM][0:DIM])
 	#pragma acc loop independent
 	#pragma omp parallel for
 	for(int iP=0;iP<ParticleCount;++iP){
@@ -4317,7 +4317,7 @@ static void calculateVirialStressAtParticle()
 		}
 	}
 	
-	#pragma acc kernels present(Property[0:ParticleCount],x[0:ParticleCount][0:DIM],NeighborInd[0:NeighborIndCount])
+	#pragma acc kernels present(Property[0:ParticleCount],x[0:ParticleCount][0:DIM],NeighborInd[0:NeighborIndCount],VirialStressAtParticle[0:ParticleCount][0:DIM][0:DIM])
 	#pragma acc loop independent	
 	#pragma omp parallel for
 	for(int iP=0;iP<ParticleCount;++iP){
@@ -4370,7 +4370,7 @@ static void calculateVirialStressAtParticle()
 
 	}
 	
-	#pragma acc kernels present(Property[0:ParticleCount],x[0:ParticleCount][0:DIM],v[0:ParticleCount][0:DIM],Mu[0:ParticleCount],Muf[0:ParticleCount],NeighborInd[0:NeighborIndCount])
+	#pragma acc kernels present(Property[0:ParticleCount],x[0:ParticleCount][0:DIM],v[0:ParticleCount][0:DIM],Mu[0:ParticleCount],Muf[0:ParticleCount],NeighborInd[0:NeighborIndCount],VirialStressAtParticle[0:ParticleCount][0:DIM][0:DIM])
 	#pragma acc loop independent	
 	#pragma omp parallel for
 	for(int iP=0;iP<ParticleCount;++iP){
@@ -4431,7 +4431,7 @@ static void calculateVirialStressAtParticle()
 		}
 	}
 	
-	#pragma acc kernels present(Property[0:ParticleCount],x[0:ParticleCount][0:DIM],NeighborInd[0:NeighborIndCount])
+	#pragma acc kernels present(Property[0:ParticleCount],x[0:ParticleCount][0:DIM],NeighborInd[0:NeighborIndCount],VirialStressAtParticle[0:ParticleCount][0:DIM][0:DIM])
 	#pragma acc loop independent	
 	#pragma omp parallel for
 	for(int iP=0;iP<ParticleCount;++iP){
@@ -4515,7 +4515,7 @@ static void calculateVirialStressAtParticle()
 		}
 	}	
 	
-	#pragma acc kernels 
+	#pragma acc kernels  present(VirialPressureAtParticle[0:ParticleCount], VirialStressAtParticle[0:ParticleCount][0:DIM][0:DIM])
 	#pragma acc loop independent
 	#pragma omp parallel for
 	for(int iP=0;iP<ParticleCount;++iP){
@@ -4532,7 +4532,7 @@ static void calculateVirialStressAtParticle()
 
 static void calculatePeriodicBoundary( void )
 {
-	#pragma acc kernels
+	#pragma acc kernels present(Position[0:ParticleCount][0:DIM])
 	#pragma acc loop independent
 	#pragma omp parallel for
     for(int iP=0;iP<ParticleCount;++iP){
