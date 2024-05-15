@@ -1,0 +1,16 @@
+# results
+*.grid
+*.log
+*.prof
+*.vtk
+
+# exe
+/source/MphImplicit
+/source/MphImplicit_3d
+/source/Mph_gcc
+/source/Mph_gcc_3d
+/source/Mph_acc
+/source/Mph_acc_3d
+
+# misc
+/.vscode/*
