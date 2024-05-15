@@ -5,6 +5,9 @@
 *.vtk
 
 # exe
+*.o
+*.exe
+generator/GeneratorForMph
 /source/MphImplicit
 /source/MphImplicit_3d
 /source/Mph_gcc
