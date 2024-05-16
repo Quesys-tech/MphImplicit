@@ -2802,9 +2802,6 @@ static void multiplyMatrixC( void )
 				else if(iNP>jNP){
 					jNeigh++;
 				}
-				else{
-					// break;
-				}
 			}
 			#pragma acc loop seq
 			for(int rD=0;rD<DIM;++rD){
@@ -3186,7 +3183,7 @@ static void calculateCsrG2P( void ){
 	const int *gridCount   = MultiGridCount[iPower];
 	const int totalGridCount = gridCount[0]*gridCount[1]*gridCount[2];
 	
-	#pragma acc kernels present(gridCount[0:DIM],gridCellMin[0:DIM]) present(CellCount[0:DIM],CsrPtrG2P[0:DIM*fluidcount+1],CsrIndG2P[0:CsrNnzG2P],CsrCofG2P[0:CsrNnzG2P])
+	#pragma acc kernels present(gridCount[0:DIM],gridCellMin[0:DIM]) present(CellCount[0:DIM],CsrPtrG2P[0:DIM*fluidcount+1],CsrIndG2P[0:CsrNnzG2P],CsrCofG2P[0:CsrNnzG2P],CellFluidParticleBegin[0:TotalCellCount],CellFluidParticleEnd[0:TotalCellCount])
 	#pragma acc loop independent 
 	#pragma omp parallel for 
 	for(int iP=0;iP<fluidcount;++iP){
