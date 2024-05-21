@@ -1791,8 +1791,8 @@ static void calculatePhysicalCoefficients()
 	for(int iP=0;iP<ParticleCount;++iP){ // shear rate
 		double strainrate[DIM][DIM] = {{0.0,0.0,0.0},{0.0,0.0,0.0},{0.0,0.0,0.0}};
 		#pragma acc loop seq
-		for(int jN=0;jN<NeighborCountP[iP];++jN){  //NeighborCountP�ɂ�������
-			const int jP=NeighborIndP[ NeighborPtrP[iP]+jN ]; //IndP, PtrP�ɂ�������
+		for(int jN=0;jN<NeighborCountP[iP];++jN){  //NeighborCountPにおきかえ
+			const int jP=NeighborIndP[ NeighborPtrP[iP]+jN ]; //IndP, PtrPにおきかえ
 			if(iP==jP)continue;
             double xij[DIM];
 			#pragma acc loop seq
@@ -2299,7 +2299,7 @@ static void calculateWall()
 static long int NonzeroCountA;
 static double       *CsrCofA;  // [ FluidCount * DIM x NeighFluidCount * DIM]
 static int          *CsrIndA;  // [ FluidCount * DIM x NeighFluidCount * DIM]
-static long int *CsrPtrA;  // [ FluidCount * DIM + 1 ] NeighborFluidCount?��̐ώZ?��?��Ƃ�?��Čv?��Z?��?��
+static long int *CsrPtrA;  // [ FluidCount * DIM + 1 ] NeighborFluidCountの積算列として計算可
 static double *VectorB;  // [ FluidCount * DIM ]
 #pragma acc declare create(NonzeroCountA,CsrCofA,CsrIndA,CsrPtrA,VectorB)
 
@@ -2526,7 +2526,7 @@ static void freeMatrixA( void ){
 static long int  NonzeroCountC;
 static double       *CsrCofC; // [ FluidCount * DIM x NeighCount ]
 static int          *CsrIndC; // [ FluidCount * DIM x NeighCount ]
-static long int *CsrPtrC; // [ FluidCount * DIM + 1 ] NeighCount?��̐ώZ?��?��
+static long int *CsrPtrC; // [ FluidCount * DIM + 1 ] NeighCountの積算列
 static double *VectorP; // [ ParticleCount ]
 #pragma acc declare create(NonzeroCountC, CsrCofC,CsrIndC,CsrPtrC,VectorP)
 
@@ -2828,7 +2828,7 @@ static int (*MultiGridCellMax)[DIM];
 static int (*MultiGridCount)[DIM];
 #pragma acc declare create(MultiGridCellMin,MultiGridCellMax,MultiGridCount)
 
-static int  (*MultiGridOffset); //?��?��?��?��?��ɉ�?��ڂ�Grid?��?��?��炪iPower?��̊K?��w?��?��?��?��?��?��?��?��
+static int  (*MultiGridOffset); //ここに何個目のGridからがiPowerの階層かを示す
 #pragma acc declare create(MultiGridOffset)
 
 static int TotalTopGridCount;
