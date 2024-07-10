@@ -215,6 +215,7 @@ static void resetForce();
 static void calculateCellParticle( void );
 static void calculateNeighbor( void );
 static void freeNeighbor( void );
+static void calculateShearRate( void );
 static void calculatePhysicalCoefficients( void );
 static void calculateDensityA();
 static void calculatePressureA();
@@ -405,7 +406,6 @@ int main(int argc, char *argv[])
 	calculateGravityCenter();
 	calculateDensityP();
 	calculateDivergenceP();
-//	calculatePhysicalCoefficients();
     writeVtkFile("output.vtk");
 	freeNeighbor();
 	
@@ -429,6 +429,7 @@ int main(int argc, char *argv[])
 			cTill = clock(); cOther += (cTill-cFrom); cFrom = cTill;
 		}
 		
+
 		// particle movement
 		calculateConvection();
 		// wall calculation
@@ -488,7 +489,7 @@ int main(int argc, char *argv[])
     	calculatePressureP();
 		calculateVirialStressAtParticle();
 		calculateVirialPressureInsideRadius();
-		// calculatePhysicalCoefficients();
+		calculateShearRate();
 		
 		if( Time + 1.0e-5*Dt >= VtkOutputNext ){
 			calculateViscosityV();	// For displaying "Force"
@@ -699,17 +700,19 @@ static void readGridFile(char *filename)
 		double (*x)[DIM] = Position;
 		double (*v)[DIM] = Velocity;
 		double (*p)      = VirialPressureInsideRadius;
+		double (*gamma)  = ShearRate;
 		
 		for(int iP=0;iP<ParticleCount;++iP){
 			if(fgets(buf,sizeof(buf),fp)==NULL)break;
 			int vnum = 0;
-			vnum = sscanf(buf,"%d  %lf %lf %lf  %lf %lf %lf  %lf",
+			vnum = sscanf(buf,"%d  %lf %lf %lf  %lf %lf %lf  %lf %lf",
 				&Property[iP],
 				&x[iP][0],&x[iP][1],&x[iP][2],
 				&v[iP][0],&v[iP][1],&v[iP][2],
-				&p[iP]
+				&p[iP], &gamma[iP]
 			);
 			if(vnum<7){p[iP]=0.0;}
+			if(vnum<8){gamma[iP]=0.0;}
 		}
 	}catch(...){};
 	
@@ -740,14 +743,15 @@ static void writeProfFile(char *filename)
 
     const double (*q)[DIM] = Position;
     const double (*v)[DIM] = Velocity;
-	double (*p)      = VirialPressureInsideRadius;
+	const double (*p)      = VirialPressureInsideRadius;
+	const double (*gamma)  = ShearRate;
 
     for(int iP=0;iP<ParticleCount;++iP){
-            fprintf(fp,"%d %e %e %e  %e %e %e  %e\n",
+            fprintf(fp,"%d %e %e %e  %e %e %e  %e %e\n",
                     Property[iP],
                     q[iP][0], q[iP][1], q[iP][2],
                     v[iP][0], v[iP][1], v[iP][2],
-            	p[iP]
+	            	p[iP], gamma[iP]
             );
     }
     fflush(fp);
@@ -1407,6 +1411,19 @@ static void calculateCellParticle()
 	for(int iP=0;iP<ParticleCount;++iP){
 		VirialPressureInsideRadius[iP]=TmpDoubleScalar[iP];
 	}
+	
+	#pragma acc kernels present(VirialPressureInsideRadius[0:ParticleCount])
+	#pragma acc loop independent
+	#pragma omp parallel for
+	for(int iP=0;iP<ParticleCount;++iP){
+		TmpDoubleScalar[iP]=ShearRate[CellParticle[iP]];
+	}
+	#pragma acc kernels
+	#pragma acc loop independent
+	#pragma omp parallel for
+	for(int iP=0;iP<ParticleCount;++iP){
+		ShearRate[iP]=TmpDoubleScalar[iP];
+	}
 }
 
 
@@ -1735,6 +1752,62 @@ static void resetForce()
     }
 }
 
+static void calculateShearRate()
+{
+
+	#pragma acc kernels present(Property[0:ParticleCount],Position[0:ParticleCount][0:DIM],Velocity[0:ParticleCount][0:DIM],NeighborIndP[0:NeighborIndCountP])
+	#pragma acc loop independent
+	#pragma omp parallel for
+	for(int iP=0;iP<ParticleCount;++iP){ // shear rate
+		double ss=0.0;
+		#pragma acc loop seq
+		for(int jN=0;jN<NeighborCount[iP];++jN){
+			const int jP=NeighborInd[ NeighborPtr[iP]+jN ];
+			if(iP==jP)continue;
+			double xij[DIM];
+			#pragma acc loop seq
+			for(int iD=0;iD<DIM;++iD){
+				xij[iD] = Mod(Position[jP][iD] - Position[iP][iD] +0.5*DomainWidth[iD] , DomainWidth[iD]) -0.5*DomainWidth[iD];
+			}
+			const double rij2 = (xij[0]*xij[0] + xij[1]*xij[1] + xij[2]*xij[2]);
+			if(rij2==0.0)continue;
+			if(RadiusV*RadiusV - rij2 >= 0){
+				
+				const double rij = sqrt(rij2);
+				const double dwij = -dwvdr(rij,RadiusV);
+				const double eij[DIM] = {xij[0]/rij,xij[1]/rij,xij[2]/rij};
+				double uij[DIM];
+				#pragma acc loop seq
+				for(int iD=0;iD<DIM;++iD){
+					uij[iD]=Velocity[jP][iD]-Velocity[iP][iD];
+				}
+				double uijeij=0.0;
+				#pragma acc loop seq
+				for(int iD=0;iD<DIM;++iD){
+					uijeij += uij[iD]*eij[iD];
+				}
+				double mui=Mu[iP];
+				double muj=Mu[jP];
+				if( (Property[iP]!=Property[jP]) && (SOLID_BEGIN<=Property[iP])){
+					mui=Muf[iP];
+				}
+				if( (Property[iP]!=Property[jP]) && (SOLID_BEGIN<=Property[jP]) ){
+					muj=Muf[jP];
+				}
+				const double muij = 2.0*(mui*muj)/(mui+muj);
+				
+				#ifdef TWO_DIMENSIONAL
+				ss+= 4.0/2.0 * muij/mui * uijeij * uijeij * dwij/rij;
+				#else
+				ss+= 5.0/2.0 * muij/mui * uijeij * uijeij * dwij/rij;
+				#endif
+			}
+		}
+		
+		ShearRate[iP]=sqrt(2.0*ss);
+	}
+}
+
 
 static void calculatePhysicalCoefficients()
 {	
@@ -1785,51 +1858,7 @@ static void calculatePhysicalCoefficients()
 		const double phif = SolidFaceMohrCoulombFrictionAnglePhi;
 		SolidFaceYieldStress[iP] = cf + ((p>0.0) ? p:0.0) * tan(M_PI/180.0*phif);
 	}
-	#pragma acc kernels present(Property[0:ParticleCount],Position[0:ParticleCount][0:DIM],Velocity[0:ParticleCount][0:DIM],NeighborIndP[0:NeighborIndCountP])
-	#pragma acc loop independent
-	#pragma omp parallel for
-	for(int iP=0;iP<ParticleCount;++iP){ // shear rate
-		double strainrate[DIM][DIM] = {{0.0,0.0,0.0},{0.0,0.0,0.0},{0.0,0.0,0.0}};
-		#pragma acc loop seq
-		for(int jN=0;jN<NeighborCountP[iP];++jN){  //NeighborCountPにおきかえ
-			const int jP=NeighborIndP[ NeighborPtrP[iP]+jN ]; //IndP, PtrPにおきかえ
-			if(iP==jP)continue;
-            double xij[DIM];
-			#pragma acc loop seq
-            for(int iD=0;iD<DIM;++iD){
-                xij[iD] = Mod(Position[jP][iD] - Position[iP][iD] +0.5*DomainWidth[iD] , DomainWidth[iD]) -0.5*DomainWidth[iD];
-            }
-			const double radius = RadiusP;
-			const double rij2 = (xij[0]*xij[0] + xij[1]*xij[1] + xij[2]*xij[2]);
-			if(rij2==0.0)continue;
-			if(radius*radius - rij2 >= 0){
-				const double rij = sqrt(rij2);
-				const double dw = dwpdr(rij,radius);
-				double eij[DIM] = {xij[0]/rij,xij[1]/rij,xij[2]/rij};
-				double uij[DIM];
-				#pragma acc loop seq
-				for(int iD=0;iD<DIM;++iD){
-					uij[iD]=Velocity[jP][iD]-Velocity[iP][iD];
-				}
-				#pragma acc loop seq
-				for(int iD=0;iD<DIM;++iD){
-					#pragma acc loop seq
-					for(int jD=0;jD<DIM;++jD){
-						strainrate[iD][jD] -= 0.5*(uij[iD]*eij[jD]+uij[jD]*eij[iD])*dw;
-					}
-				}
-			}
-		}
-		double ss = 0.0;
-		#pragma acc loop seq
-		for(int iD=0;iD<DIM;++iD){
-			#pragma acc loop seq
-			for(int jD=0;jD<DIM;++jD){
-				ss += strainrate[iD][jD]*strainrate[iD][jD];
-			}
-		}
-		ShearRate[iP]=sqrt(2.0*ss);
-	}
+	
 	
 	#pragma acc kernels
 	#pragma acc loop independent
@@ -4098,6 +4127,9 @@ static void solveWithConjugatedGradient(void){
 		#endif
 		myDdot( N, b, s, &rs0 );
 		myDdot( N, b, b, &rr0 );
+		// 20240213 modified
+		const double eps = 1.0e-16*Mass[0]/ParticleSpacing/ParticleSpacing/Dt/Dt;
+		rr0+=eps*eps;
 		
 		myDcopy( N, b, r );	
 		myDcsrmvForA( N, N, NonzeroCountA, -1.0, CsrCofA, CsrPtrA, CsrIndA, x, 1.0, r );
