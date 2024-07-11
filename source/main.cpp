@@ -1412,7 +1412,7 @@ static void calculateCellParticle()
 		VirialPressureInsideRadius[iP]=TmpDoubleScalar[iP];
 	}
 	
-	#pragma acc kernels present(VirialPressureInsideRadius[0:ParticleCount])
+	#pragma acc kernels present(ShearRate[0:ParticleCount])
 	#pragma acc loop independent
 	#pragma omp parallel for
 	for(int iP=0;iP<ParticleCount;++iP){
