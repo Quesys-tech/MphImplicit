@@ -1755,7 +1755,7 @@ static void resetForce()
 static void calculateShearRate()
 {
 
-	#pragma acc kernels present(Property[0:ParticleCount],Position[0:ParticleCount][0:DIM],Velocity[0:ParticleCount][0:DIM],NeighborIndP[0:NeighborIndCountP])
+	#pragma acc kernels present(Property[0:ParticleCount],Position[0:ParticleCount][0:DIM],Velocity[0:ParticleCount][0:DIM],NeighborInd[0:NeighborIndCount],Mu[0:ParticleCount],Muf[0:ParticleCount])
 	#pragma acc loop independent
 	#pragma omp parallel for
 	for(int iP=0;iP<ParticleCount;++iP){ // shear rate
