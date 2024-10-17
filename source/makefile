@@ -80,7 +80,7 @@ $(TARGET_ICC3D): $(OBJE_ICC3D)
 PGCC = pgc++
 OBJE_ACC   = $(patsubst %.cpp,%_acc.o,$(SRC))
 OBJE_ACC3D = $(patsubst %.cpp,%_acc3d.o,$(SRC))
-CFLAGS_ACC = -O3 -acc -Minfo=accel
+CFLAGS_ACC = -O3 -acc -Minfo=accel -gpu=cc80
 
 $(TARGET_ACC): $(OBJE_ACC)
 	$(PGCC) $(CFLAGS_ACC) $(DFLAGS) -o $@ $(OBJE_ACC) $(LDFLAGS) 
@@ -94,28 +94,6 @@ $(TARGET_ACC3D): $(OBJE_ACC3D)
 %_acc3d.o : %.cpp
 	$(PGCC) $(CFLAGS_ACC)  -o $@ -c $<
 
-
-###### For OpenACC+CUDA calculation compiled with nvc++ ######
-PGCC = pgc++
-PGCC = nvc++
-OBJE_CUDA    =  $(patsubst %.cpp,%_cuda.o,$(SRC))
-OBJE_CUDA3D  =  $(patsubst %.cpp,%_cuda3d.o,$(SRC))
-CFLAGS_CUDA  = -O3 -acc -Minfo=accel -ta=tesla,cc70,cc80 -Mcuda 
-#CFLAGS_CUDA = -O3 -acc -Minfo=accel -gpu=ccall -Mcuda
-LDFLAGS_CUDA = -lm -lcublas -lcusparse
-
-$(TARGET_CUDA): $(OBJE_CUDA)
-	$(PGCC) $(CFLAGS_CUDA) $(DFLAGS) -o $@ $(OBJE_CUDA) $(LDFLAGS_CUDA) 
-
-%_cuda.o : %.cpp
-	$(PGCC) $(CFLAGS_CUDA) $(DFLAGS) -o $@ -c $<
-	
-$(TARGET_CUDA3D): $(OBJE_CUDA3D)
-	$(PGCC) $(CFLAGS_CUDA)  -o $@ $(OBJE_CUDA3D) $(LDFLAGS_CUDA) 
-
-%_cuda3d.o : %.cpp
-	$(PGCC) $(CFLAGS_CUDA)  -o $@ -c $<
-	
 
 
 

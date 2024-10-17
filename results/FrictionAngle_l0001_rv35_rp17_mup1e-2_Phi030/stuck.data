@@ -1,25 +1,24 @@
 #######
 Dt				1.0e-4
-OutputInterval			1.0
-VtkOutputInterval		1.0e-1
-EndTime			2.0
+OutputInterval			2.0e-1
+VtkOutputInterval		0.02
+EndTime			1.0
 RadiusRatioA                    3.5
 RadiusRatioP                    1.75
 RadiusRatioV                    3.5
-Density							870.0		870.0		870.0		870.0		870.0		870.0
+Density							2.0e+3		2.0e+3		2.0e+3		2.0e+3		2.0e+3		2.0e+3
 BulkModulus						1.0e+8		1.0e+8		1.0e+8		1.0e+8		1.0e+8		1.0e+8
 BulkViscosity					5.0e+5		5.0e+5		5.0e+5		5.0e+5		5.0e+5		5.0e+5
-BulkViscosityInExpansion		5.0e+5		5.0e+5		0.0e+5		0.0e+5		0.0e+5		0.0e+5
 PseudoplasticFlowBehaviorIndexN			1.0			1.0			1.0			1.0			1.0			1.0
-PseudoplasticFlowConsistencyIndexK		2.0e+0		2.0e+0		2.0e+0		2.0e+0		2.0e+0		2.0e+5
-PapanastasiouRegularizationIndexMYs		5000.0		5000.0		5000.0		5000.0		5000.0		5000.0
-MohrCoulombInterceptC					50.0		50.0		50.0		50.0		50.0		50.0
-MohrCoulombFrictionAnglePhi				0.0			0.0			0.0			0.0			0.0			0.0
+PseudoplasticFlowConsistencyIndexK		1.0e-2		1.0e-2		1.0e-2		1.0e-2		1.0e-2		1.0e-2
+PapanastasiouRegularizationIndexMYs		2.0e+5		2.0e+5		2.0e+5		2.0e+5		2.0e+5		2.0e+5
+MohrCoulombInterceptC					0.0		0.0		0.0		0.0		0.0		0.0
+MohrCoulombFrictionAnglePhi				30.0		30.0		30.0		30.0		30.0		30.0
 SolidFacePseudoplasticFlowBehaviorIndexN		1.0
-SolidFacePseudoplasticFlowConsistencyIndexK		2.0e+5
-SolidFacePapanastasiouRegularizationIndexMYs	5000.0
-SolidFaceMohrCoulombInterceptC					50.0
-SolidFaceMohrCoulombFrictionAnglePhi			0.0
+SolidFacePseudoplasticFlowConsistencyIndexK		1.0e-2
+SolidFacePapanastasiouRegularizationIndexMYs	2.0e+5
+SolidFaceMohrCoulombInterceptC					0.0
+SolidFaceMohrCoulombFrictionAnglePhi			30.0
 SurfaceTension					0.000		0.000		0.000		0.000		0.000		0.000
 InteractionRatio(Fluid0)			1.0			1.0			1.0			1.0			1.0			1.0
 InteractionRatio(Fluid1)			1.0			1.0			1.0			1.0			1.0			1.0
@@ -29,6 +28,7 @@ InteractionRatio(Wall4)				1.0			1.0			1.0			1.0			1.0			1.0
 InteractionRatio(Solid)				1.0			1.0			1.0			1.0			1.0			1.0
 Gravity                         0.0  -9.81   0.0
 Wall2    Center 0.0 0.0 0.0    Velocity 0.0 0.0 0.0    Omega 0.0 0.0 0.0
-Wall3    Center 0.0 0.0 0.0    Velocity 0.0 0.0 0.0    Omega 0.0 0.0 0.0
+Wall3    Center 0.0 0.0 0.0    Velocity 0.0 0.08 0.0    Omega 0.0 0.0 0.0
 Wall4    Center 0.0 0.0 0.0    Velocity 0.0 0.0 0.0    Omega 0.0 0.0 0.0
+
 

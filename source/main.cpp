@@ -7,13 +7,13 @@
 //    Lisence         : GPLv3                                                                     //
 //    For instruction : see README                                                                //
 //    For theory      : see the following references                                              //
-//     [1] CPM 8 (2021) 69-86,       https://doi.org/10.1007/s40571-020-00313-w                   //
-//     [2] JSCES Paper No.20210006,  https://doi.org/10.11421/jsces.2021.20210006                 //
-//     [3] CPM 9 (2022) 265-276,     https://doi.org/10.1007/s40571-021-00408-y                   //
-//     [4] CMAME 385 (2021) 114072,  https://doi.org/10.1016/j.cma.2021.114072                    //
-//     [5] JSCES Paper No.20210016,  https://doi.org/10.11421/jsces.2021.20210016                 //
-//     [6] CPM (2023),               https://doi.org/10.1007/s40571-023-00636-4                   //
-//     [7] JFST 18 (2023) JFST0035,  https://doi.org/10.1299/jfst.2023jfst0035                    //
+//     [1] CPM 8 (2021) 69-86,        https://doi.org/10.1007/s40571-020-00313-w                  //
+//     [2] JSCES Paper No.20210006,   https://doi.org/10.11421/jsces.2021.20210006                //
+//     [3] CPM 9 (2022) 265-276,      https://doi.org/10.1007/s40571-021-00408-y                  //
+//     [4] CMAME 385 (2021) 114072,   https://doi.org/10.1016/j.cma.2021.114072                   //
+//     [5] JSCES Paper No.20210016,   https://doi.org/10.11421/jsces.2021.20210016                //
+//     [6] CPM (2023),                https://doi.org/10.1007/s40571-023-00636-4                  //
+//     [7] COGE 176 (2024) 106759,    https://doi.org/10.1016/j.compgeo.2024.106759               //
 //    (Please cite the references above when you make a publication using this program)           //
 //    Copyright (c) 2022                                                                          //
 //    Masahiro Kondo & National Institute of Advanced Industrial Science and Technology (AIST)    //
@@ -133,22 +133,22 @@ static double BulkViscosityInExpansion[TYPE_COUNT];
 // shear viscosity
 static double PseudoplasticFlowBehaviorIndexN[TYPE_COUNT];
 static double PseudoplasticFlowConsistencyIndexK[TYPE_COUNT];
-static double PapanastasiouRegularizationIndexM[TYPE_COUNT];
+static double PapanastasiouRegularizationIndexMYs[TYPE_COUNT];
 static double MohrCoulombInterceptC[TYPE_COUNT];
 static double MohrCoulombFrictionAnglePhi[TYPE_COUNT];
-#pragma acc declare create(PseudoplasticFlowBehaviorIndexN, PseudoplasticFlowConsistencyIndexK, PapanastasiouRegularizationIndexM)
+#pragma acc declare create(PseudoplasticFlowBehaviorIndexN, PseudoplasticFlowConsistencyIndexK, PapanastasiouRegularizationIndexMYs)
 #pragma acc declare create(MohrCoulombInterceptC, MohrCoulombFrictionAnglePhi)
 
 
 // SolidFaceViscosity 20240126 modified
 static double SolidFacePseudoplasticFlowBehaviorIndexN;
 static double SolidFacePseudoplasticFlowConsistencyIndexK;
-static double SolidFacePapanastasiouRegularizationIndexM;
+static double SolidFacePapanastasiouRegularizationIndexMYs;
 static double SolidFaceMohrCoulombInterceptC;
 static double SolidFaceMohrCoulombFrictionAnglePhi;
 #pragma acc declare create(SolidFacePseudoplasticFlowBehaviorIndexN)
 #pragma acc declare create(SolidFacePseudoplasticFlowConsistencyIndexK)
-#pragma acc declare create(SolidFacePapanastasiouRegularizationIndexM)
+#pragma acc declare create(SolidFacePapanastasiouRegularizationIndexMYs)
 #pragma acc declare create(SolidFaceMohrCoulombInterceptC)
 #pragma acc declare create(SolidFaceMohrCoulombFrictionAnglePhi)
 
@@ -170,14 +170,14 @@ static double *VolStrainP;        // number density per unit volume for base pre
 static double *DivergenceP;     // volumetric strainrate for pressure B
 static double *PressureP;       // base pressure
 static double *VirialPressureAtParticle; // VirialPressureInSingleParticleRegion
-static double *VirialPressureInsideRadius; //VirialPressureInRegionInsideEffectiveRadius
+static double *VirialPressureSmoothed; //VirialPressureInRegionInsideEffectiveRadius
 static double (*VirialStressAtParticle)[DIM][DIM];
 static double *Mu;              // viscosity coefficient for shear
 static double *Muf;				// viscosity coefficient for inter-solid
 static double *Lambda;          // viscosity coefficient for bulk
 static double *Kappa;           // bulk modulus
 #pragma acc declare create(FluidParticleBegin,FluidParticleEnd,DensityA,GravityCenter,PressureA,VolStrainP,DivergenceP,PressureP)
-#pragma acc declare create(VirialPressureAtParticle,VirialPressureInsideRadius,VirialStressAtParticle,Mu,Muf,Lambda,Kappa)
+#pragma acc declare create(VirialPressureAtParticle,VirialPressureSmoothed,VirialStressAtParticle,Mu,Muf,Lambda,Kappa)
 static double *YieldStress;
 static double *ShearRate;
 #pragma acc declare create(YieldStress,ShearRate)
@@ -215,6 +215,7 @@ static void resetForce();
 static void calculateCellParticle( void );
 static void calculateNeighbor( void );
 static void freeNeighbor( void );
+static void calculateShearRate( void );
 static void calculatePhysicalCoefficients( void );
 static void calculateDensityA();
 static void calculatePressureA();
@@ -235,7 +236,7 @@ static void calculateMultiGridMatrix( void );
 static void freeMultiGridMatrix( void );
 static void solveWithConjugatedGradient( void );
 // static void calculateVirialPressureAtParticle();
-static void calculateVirialPressureInsideRadius();
+static void calculateVirialPressureSmoothed();
 static void calculateVirialStressAtParticle();
 
 
@@ -386,9 +387,9 @@ int main(int argc, char *argv[])
 	#pragma acc update device(ParticleSpacing,ParticleVolume,Dt,DomainMin[0:DIM],DomainMax[0:DIM],DomainWidth[0:DIM])
 	#pragma acc update device(ParticleCount,ParticleIndex[0:ParticleCount],Property[0:ParticleCount],Mass[0:ParticleCount])
 	#pragma acc update device(Density[0:TYPE_COUNT],BulkModulus[0:TYPE_COUNT],BulkViscosity[0:TYPE_COUNT],BulkViscosityInExpansion[0:TYPE_COUNT])
-	#pragma acc update device(PseudoplasticFlowBehaviorIndexN[0:TYPE_COUNT], PseudoplasticFlowConsistencyIndexK[0:TYPE_COUNT], PapanastasiouRegularizationIndexM[0:TYPE_COUNT])
+	#pragma acc update device(PseudoplasticFlowBehaviorIndexN[0:TYPE_COUNT], PseudoplasticFlowConsistencyIndexK[0:TYPE_COUNT], PapanastasiouRegularizationIndexMYs[0:TYPE_COUNT])
 	#pragma acc update device(MohrCoulombInterceptC[0:TYPE_COUNT], MohrCoulombFrictionAnglePhi[0:TYPE_COUNT])
-	#pragma acc update device(SolidFacePseudoplasticFlowBehaviorIndexN, SolidFacePseudoplasticFlowConsistencyIndexK, SolidFacePapanastasiouRegularizationIndexM)
+	#pragma acc update device(SolidFacePseudoplasticFlowBehaviorIndexN, SolidFacePseudoplasticFlowConsistencyIndexK, SolidFacePapanastasiouRegularizationIndexMYs)
 	#pragma acc update device(SolidFaceMohrCoulombInterceptC, SolidFaceMohrCoulombFrictionAnglePhi)
 	#pragma acc update device(SurfaceTension[0:TYPE_COUNT],CofA[0:TYPE_COUNT],CofK,InteractionRatio[0:TYPE_COUNT][0:TYPE_COUNT])
 	#pragma acc update device(Position[0:ParticleCount][0:DIM],Velocity[0:ParticleCount][0:DIM],Force[0:ParticleCount][0:DIM])
@@ -405,7 +406,6 @@ int main(int argc, char *argv[])
 	calculateGravityCenter();
 	calculateDensityP();
 	calculateDivergenceP();
-//	calculatePhysicalCoefficients();
     writeVtkFile("output.vtk");
 	freeNeighbor();
 	
@@ -487,8 +487,8 @@ int main(int argc, char *argv[])
 		calculateDivergenceP();
     	calculatePressureP();
 		calculateVirialStressAtParticle();
-		calculateVirialPressureInsideRadius();
-		// calculatePhysicalCoefficients();
+		calculateVirialPressureSmoothed();
+		calculateShearRate();
 		
 		if( Time + 1.0e-5*Dt >= VtkOutputNext ){
 			calculateViscosityV();	// For displaying "Force"
@@ -562,12 +562,12 @@ static void readDataFile(char *filename)
             else if(sscanf(buf," BulkViscosityInExpansion %lf %lf %lf %lf %lf %lf",&BulkViscosityInExpansion[0],&BulkViscosityInExpansion[1],&BulkViscosityInExpansion[2],&BulkViscosityInExpansion[3],&BulkViscosityInExpansion[4],&BulkViscosityInExpansion[5])==6){mode=reading_global;}
         	else if(sscanf(buf," PseudoplasticFlowBehaviorIndexN %lf %lf %lf %lf %lf %lf",&PseudoplasticFlowBehaviorIndexN[0],&PseudoplasticFlowBehaviorIndexN[1],&PseudoplasticFlowBehaviorIndexN[2],&PseudoplasticFlowBehaviorIndexN[3],&PseudoplasticFlowBehaviorIndexN[4],&PseudoplasticFlowBehaviorIndexN[5])==6){mode=reading_global;}
             else if(sscanf(buf," PseudoplasticFlowConsistencyIndexK %lf %lf %lf %lf %lf %lf",&PseudoplasticFlowConsistencyIndexK[0],&PseudoplasticFlowConsistencyIndexK[1],&PseudoplasticFlowConsistencyIndexK[2],&PseudoplasticFlowConsistencyIndexK[3],&PseudoplasticFlowConsistencyIndexK[4],&PseudoplasticFlowConsistencyIndexK[5])==6){mode=reading_global;}
-            else if(sscanf(buf," PapanastasiouRegularizationIndexM %lf %lf %lf %lf %lf %lf",&PapanastasiouRegularizationIndexM[0],&PapanastasiouRegularizationIndexM[1],&PapanastasiouRegularizationIndexM[2],&PapanastasiouRegularizationIndexM[3],&PapanastasiouRegularizationIndexM[4],&PapanastasiouRegularizationIndexM[5])==6){mode=reading_global;}
+            else if(sscanf(buf," PapanastasiouRegularizationIndexMYs %lf %lf %lf %lf %lf %lf",&PapanastasiouRegularizationIndexMYs[0],&PapanastasiouRegularizationIndexMYs[1],&PapanastasiouRegularizationIndexMYs[2],&PapanastasiouRegularizationIndexMYs[3],&PapanastasiouRegularizationIndexMYs[4],&PapanastasiouRegularizationIndexMYs[5])==6){mode=reading_global;}
             else if(sscanf(buf," MohrCoulombInterceptC %lf %lf %lf %lf %lf %lf",&MohrCoulombInterceptC[0],&MohrCoulombInterceptC[1],&MohrCoulombInterceptC[2],&MohrCoulombInterceptC[3],&MohrCoulombInterceptC[4],&MohrCoulombInterceptC[5])==6){mode=reading_global;}
             else if(sscanf(buf," MohrCoulombFrictionAnglePhi %lf %lf %lf %lf %lf %lf",&MohrCoulombFrictionAnglePhi[0],&MohrCoulombFrictionAnglePhi[1],&MohrCoulombFrictionAnglePhi[2],&MohrCoulombFrictionAnglePhi[3],&MohrCoulombFrictionAnglePhi[4],&MohrCoulombFrictionAnglePhi[5])==6){mode=reading_global;}
         	else if(sscanf(buf," SolidFacePseudoplasticFlowBehaviorIndexN %lf ",&SolidFacePseudoplasticFlowBehaviorIndexN)==1){mode=reading_global;}
             else if(sscanf(buf," SolidFacePseudoplasticFlowConsistencyIndexK %lf ",&SolidFacePseudoplasticFlowConsistencyIndexK)==1){mode=reading_global;}
-            else if(sscanf(buf," SolidFacePapanastasiouRegularizationIndexM %lf ",&SolidFacePapanastasiouRegularizationIndexM)==1){mode=reading_global;}
+            else if(sscanf(buf," SolidFacePapanastasiouRegularizationIndexMYs %lf ",&SolidFacePapanastasiouRegularizationIndexMYs)==1){mode=reading_global;}
             else if(sscanf(buf," SolidFaceMohrCoulombInterceptC %lf ",&SolidFaceMohrCoulombInterceptC)==1){mode=reading_global;}
             else if(sscanf(buf," SolidFaceMohrCoulombFrictionAnglePhi %lf ",&SolidFaceMohrCoulombFrictionAnglePhi)==1){mode=reading_global;}
 
@@ -623,7 +623,7 @@ static void readGridFile(char *filename)
 		DivergenceP = (double *)malloc(ParticleCount*sizeof(double));
 		PressureP = (double *)malloc(ParticleCount*sizeof(double));
 		VirialPressureAtParticle = (double *)malloc(ParticleCount*sizeof(double));
-		VirialPressureInsideRadius = (double *)malloc(ParticleCount*sizeof(double));
+		VirialPressureSmoothed = (double *)malloc(ParticleCount*sizeof(double));
 		VirialStressAtParticle = (double (*) [DIM][DIM])malloc(ParticleCount*sizeof(double [DIM][DIM]));
 		Mass = (double (*))malloc(ParticleCount*sizeof(double));
 		Force = (double (*)[DIM])malloc(ParticleCount*sizeof(double [DIM]));
@@ -656,7 +656,7 @@ static void readGridFile(char *filename)
 		#pragma acc enter data create(DivergenceP[0:ParticleCount]) attach(DivergenceP)
 		#pragma acc enter data create(PressureP[0:ParticleCount]) attach(PressureP)
 		#pragma acc enter data create(VirialPressureAtParticle[0:ParticleCount]) attach(VirialPressureAtParticle)
-		#pragma acc enter data create(VirialPressureInsideRadius[0:ParticleCount]) attach(VirialPressureInsideRadius)
+		#pragma acc enter data create(VirialPressureSmoothed[0:ParticleCount]) attach(VirialPressureSmoothed)
 		#pragma acc enter data create(VirialStressAtParticle[0:ParticleCount][0:DIM][0:DIM]) attach(VirialStressAtParticle)
 		#pragma acc enter data create(Mass[0:ParticleCount]) attach(Mass)
 		#pragma acc enter data create(Force[0:ParticleCount][0:DIM]) attach(Force)
@@ -698,18 +698,20 @@ static void readGridFile(char *filename)
 		
 		double (*x)[DIM] = Position;
 		double (*v)[DIM] = Velocity;
-		double (*p)      = VirialPressureInsideRadius;
+		double (*p)      = VirialPressureSmoothed;
+		double (*gamma)  = ShearRate;
 		
 		for(int iP=0;iP<ParticleCount;++iP){
 			if(fgets(buf,sizeof(buf),fp)==NULL)break;
 			int vnum = 0;
-			vnum = sscanf(buf,"%d  %lf %lf %lf  %lf %lf %lf  %lf",
+			vnum = sscanf(buf,"%d  %lf %lf %lf  %lf %lf %lf  %lf %lf",
 				&Property[iP],
 				&x[iP][0],&x[iP][1],&x[iP][2],
 				&v[iP][0],&v[iP][1],&v[iP][2],
-				&p[iP]
+				&p[iP], &gamma[iP]
 			);
 			if(vnum<7){p[iP]=0.0;}
+			if(vnum<8){gamma[iP]=0.0;}
 		}
 	}catch(...){};
 	
@@ -740,14 +742,15 @@ static void writeProfFile(char *filename)
 
     const double (*q)[DIM] = Position;
     const double (*v)[DIM] = Velocity;
-	double (*p)      = VirialPressureInsideRadius;
+	const double (*p)      = VirialPressureSmoothed;
+	const double (*gamma)  = ShearRate;
 
     for(int iP=0;iP<ParticleCount;++iP){
-            fprintf(fp,"%d %e %e %e  %e %e %e  %e\n",
+            fprintf(fp,"%d %e %e %e  %e %e %e  %e %e\n",
                     Property[iP],
                     q[iP][0], q[iP][1], q[iP][2],
                     v[iP][0], v[iP][1], v[iP][2],
-            	p[iP]
+	            	p[iP], gamma[iP]
             );
     }
     fflush(fp);
@@ -761,7 +764,7 @@ static void writeVtkFile(char *filename)
 //	#pragma acc update host(Position[0:ParticleCount][0:DIM],Velocity[0:ParticleCount][0:DIM],Force[0:ParticleCount][0:DIM])
 	#pragma acc update host(DensityA[0:ParticleCount],GravityCenter[0:ParticleCount][0:DIM],PressureA[0:ParticleCount])
 	#pragma acc update host(VolStrainP[0:ParticleCount],DivergenceP[0:ParticleCount],PressureP[0:ParticleCount])
-//	#pragma acc update host(VirialPressureAtParticle[0:ParticleCount],VirialPressureInsideRadius[0:ParticleCount],VirialStressAtParticle[0:ParticleCount][0:DIM][0:DIM])
+//	#pragma acc update host(VirialPressureAtParticle[0:ParticleCount],VirialPressureSmoothed[0:ParticleCount],VirialStressAtParticle[0:ParticleCount][0:DIM][0:DIM])
 //	#pragma acc update host(Lambda[0:ParticleCount],Kappa[0:ParticleCount])
 	#pragma acc update host(Mu[0:ParticleCount])
 	#pragma acc update host(Muf[0:ParticleCount])
@@ -772,7 +775,7 @@ static void writeVtkFile(char *filename)
 	
 	// update parameters to be output
 	#pragma acc update host(Property[0:ParticleCount],Position[0:ParticleCount][0:DIM],Velocity[0:ParticleCount][0:DIM])
-	#pragma acc update host(VirialPressureAtParticle[0:ParticleCount],VirialPressureInsideRadius[0:ParticleCount])
+	#pragma acc update host(VirialPressureAtParticle[0:ParticleCount],VirialPressureSmoothed[0:ParticleCount])
 	#pragma acc update host(NeighborCount[0:ParticleCount],Force[0:ParticleCount][0:DIM])
 	
 	const double (*q)[DIM] = Position;
@@ -851,10 +854,10 @@ static void writeVtkFile(char *filename)
 		fprintf(fp, "%e\n", (float)VirialPressureAtParticle[iP] );
 	}
 	fprintf(fp, "\n");
-	fprintf(fp, "SCALARS VirialPressureInsideRadius float 1\n");
+	fprintf(fp, "SCALARS VirialPressureSmoothed float 1\n");
 	fprintf(fp, "LOOKUP_TABLE default\n");
 	for(int iP=0;iP<ParticleCount;++iP){
-		fprintf(fp, "%e\n", (float)VirialPressureInsideRadius[iP]);
+		fprintf(fp, "%e\n", (float)VirialPressureSmoothed[iP]);
 	}
 //	for(int iD=0;iD<DIM-1;++iD){
 //		for(int jD=0;jD<DIM-1;++jD){
@@ -1395,17 +1398,17 @@ static void calculateCellParticle()
 		}
 	}
 	
-	#pragma acc kernels present(VirialPressureInsideRadius[0:ParticleCount])
+	#pragma acc kernels present(VirialPressureSmoothed[0:ParticleCount])
 	#pragma acc loop independent
 	#pragma omp parallel for
 	for(int iP=0;iP<ParticleCount;++iP){
-		TmpDoubleScalar[iP]=VirialPressureInsideRadius[CellParticle[iP]];
+		TmpDoubleScalar[iP]=VirialPressureSmoothed[CellParticle[iP]];
 	}
 	#pragma acc kernels
 	#pragma acc loop independent
 	#pragma omp parallel for
 	for(int iP=0;iP<ParticleCount;++iP){
-		VirialPressureInsideRadius[iP]=TmpDoubleScalar[iP];
+		VirialPressureSmoothed[iP]=TmpDoubleScalar[iP];
 	}
 }
 
@@ -1735,6 +1738,62 @@ static void resetForce()
     }
 }
 
+static void calculateShearRate()
+{
+
+	#pragma acc kernels present(Property[0:ParticleCount],Position[0:ParticleCount][0:DIM],Velocity[0:ParticleCount][0:DIM],NeighborInd[0:NeighborIndCount],Mu[0:ParticleCount],Muf[0:ParticleCount])
+	#pragma acc loop independent
+	#pragma omp parallel for
+	for(int iP=0;iP<ParticleCount;++iP){ // shear rate
+		double ss=0.0;
+		#pragma acc loop seq
+		for(int jN=0;jN<NeighborCount[iP];++jN){
+			const int jP=NeighborInd[ NeighborPtr[iP]+jN ];
+			if(iP==jP)continue;
+			double xij[DIM];
+			#pragma acc loop seq
+			for(int iD=0;iD<DIM;++iD){
+				xij[iD] = Mod(Position[jP][iD] - Position[iP][iD] +0.5*DomainWidth[iD] , DomainWidth[iD]) -0.5*DomainWidth[iD];
+			}
+			const double rij2 = (xij[0]*xij[0] + xij[1]*xij[1] + xij[2]*xij[2]);
+			if(rij2==0.0)continue;
+			if(RadiusV*RadiusV - rij2 >= 0){
+				
+				const double rij = sqrt(rij2);
+				const double dwij = -dwvdr(rij,RadiusV);
+				const double eij[DIM] = {xij[0]/rij,xij[1]/rij,xij[2]/rij};
+				double uij[DIM];
+				#pragma acc loop seq
+				for(int iD=0;iD<DIM;++iD){
+					uij[iD]=Velocity[jP][iD]-Velocity[iP][iD];
+				}
+				double uijeij=0.0;
+				#pragma acc loop seq
+				for(int iD=0;iD<DIM;++iD){
+					uijeij += uij[iD]*eij[iD];
+				}
+				double mui=Mu[iP];
+				double muj=Mu[jP];
+				if( (Property[iP]!=Property[jP]) && (SOLID_BEGIN<=Property[iP])){
+					mui=Muf[iP];
+				}
+				if( (Property[iP]!=Property[jP]) && (SOLID_BEGIN<=Property[jP]) ){
+					muj=Muf[jP];
+				}
+				const double muij = 2.0*(mui*muj)/(mui+muj);
+				
+				#ifdef TWO_DIMENSIONAL
+				ss+= 4.0/2.0 * muij/mui * uijeij * uijeij * dwij/rij;
+				#else
+				ss+= 5.0/2.0 * muij/mui * uijeij * uijeij * dwij/rij;
+				#endif
+			}
+		}
+		
+		ShearRate[iP]=sqrt(2.0*ss);
+	}
+}
+
 
 static void calculatePhysicalCoefficients()
 {	
@@ -1771,7 +1830,7 @@ static void calculatePhysicalCoefficients()
 	#pragma omp parallel for
 	for(int iP=0;iP<ParticleCount;++iP){ // yield stress
 		const int iType = (Property[iP]<TYPE_COUNT ? Property[iP]:TYPE_COUNT-1);
-		const double p = VirialPressureInsideRadius[iP];
+		const double p = VirialPressureSmoothed[iP];
 		const double c = MohrCoulombInterceptC[ iType ];
 		const double phi = MohrCoulombFrictionAnglePhi[ iType ];
 		YieldStress[iP] = c + ((p>0.0) ? p:0.0) * tan(M_PI/180.0*phi);
@@ -1780,55 +1839,10 @@ static void calculatePhysicalCoefficients()
 	#pragma acc loop independent
 	#pragma omp parallel for
 	for(int iP=0;iP<ParticleCount;++iP){ // yield stress
-		const double p = VirialPressureInsideRadius[iP];
+		const double p = VirialPressureSmoothed[iP];
 		const double cf = SolidFaceMohrCoulombInterceptC;
 		const double phif = SolidFaceMohrCoulombFrictionAnglePhi;
 		SolidFaceYieldStress[iP] = cf + ((p>0.0) ? p:0.0) * tan(M_PI/180.0*phif);
-	}
-	#pragma acc kernels present(Property[0:ParticleCount],Position[0:ParticleCount][0:DIM],Velocity[0:ParticleCount][0:DIM],NeighborIndP[0:NeighborIndCountP])
-	#pragma acc loop independent
-	#pragma omp parallel for
-	for(int iP=0;iP<ParticleCount;++iP){ // shear rate
-		double strainrate[DIM][DIM] = {{0.0,0.0,0.0},{0.0,0.0,0.0},{0.0,0.0,0.0}};
-		#pragma acc loop seq
-		for(int jN=0;jN<NeighborCountP[iP];++jN){  //NeighborCountPにおきかえ
-			const int jP=NeighborIndP[ NeighborPtrP[iP]+jN ]; //IndP, PtrPにおきかえ
-			if(iP==jP)continue;
-            double xij[DIM];
-			#pragma acc loop seq
-            for(int iD=0;iD<DIM;++iD){
-                xij[iD] = Mod(Position[jP][iD] - Position[iP][iD] +0.5*DomainWidth[iD] , DomainWidth[iD]) -0.5*DomainWidth[iD];
-            }
-			const double radius = RadiusP;
-			const double rij2 = (xij[0]*xij[0] + xij[1]*xij[1] + xij[2]*xij[2]);
-			if(rij2==0.0)continue;
-			if(radius*radius - rij2 >= 0){
-				const double rij = sqrt(rij2);
-				const double dw = dwpdr(rij,radius);
-				double eij[DIM] = {xij[0]/rij,xij[1]/rij,xij[2]/rij};
-				double uij[DIM];
-				#pragma acc loop seq
-				for(int iD=0;iD<DIM;++iD){
-					uij[iD]=Velocity[jP][iD]-Velocity[iP][iD];
-				}
-				#pragma acc loop seq
-				for(int iD=0;iD<DIM;++iD){
-					#pragma acc loop seq
-					for(int jD=0;jD<DIM;++jD){
-						strainrate[iD][jD] -= 0.5*(uij[iD]*eij[jD]+uij[jD]*eij[iD])*dw;
-					}
-				}
-			}
-		}
-		double ss = 0.0;
-		#pragma acc loop seq
-		for(int iD=0;iD<DIM;++iD){
-			#pragma acc loop seq
-			for(int jD=0;jD<DIM;++jD){
-				ss += strainrate[iD][jD]*strainrate[iD][jD];
-			}
-		}
-		ShearRate[iP]=sqrt(2.0*ss);
 	}
 	
 	#pragma acc kernels
@@ -1838,10 +1852,11 @@ static void calculatePhysicalCoefficients()
 		const int iType = (Property[iP]<TYPE_COUNT ? Property[iP]:TYPE_COUNT-1);
 		const double k = PseudoplasticFlowConsistencyIndexK[ iType ];
 		const double n = PseudoplasticFlowBehaviorIndexN[ iType ];
-		const double m = PapanastasiouRegularizationIndexM[ iType ];
+		const double mYs = PapanastasiouRegularizationIndexMYs[ iType ];
 		const double eps = 1.0e-18/Dt;
 		const double gamma = ShearRate[iP]+eps;
-		Mu[iP] = k * pow(gamma,(n-1)) + (YieldStress[iP]/gamma)*(1.0-exp(-m*gamma));
+		const double Ys  = YieldStress[iP]+k*pow(eps,n);
+		Mu[iP] = k * pow(gamma,(n-1)) + (Ys/gamma)*(1.0-exp(-mYs/Ys*gamma));
 	}
 	
 	#pragma acc kernels
@@ -1851,10 +1866,11 @@ static void calculatePhysicalCoefficients()
 		if(Property[iP]>=SOLID_BEGIN){
 			const double kf = SolidFacePseudoplasticFlowConsistencyIndexK;
 			const double nf = SolidFacePseudoplasticFlowBehaviorIndexN;
-			const double mf = SolidFacePapanastasiouRegularizationIndexM;
+			const double mYsf = SolidFacePapanastasiouRegularizationIndexMYs;
 			const double eps = 1.0e-18/Dt;
 			const double gamma = ShearRate[iP]+eps;
-			Muf[iP] = kf * pow(gamma,(nf-1)) + (SolidFaceYieldStress[iP]/gamma)*(1.0-exp(-mf*gamma));
+			const double Ys  = SolidFaceYieldStress[iP]+kf*pow(eps,nf);
+			Muf[iP] = kf * pow(gamma,(nf-1)) + (Ys/gamma)*(1.0-exp(-mYsf*Ys*gamma));
 		}
 		else{
 			Muf[iP]=Mu[iP];
@@ -4098,6 +4114,7 @@ static void solveWithConjugatedGradient(void){
 		#endif
 		myDdot( N, b, s, &rs0 );
 		myDdot( N, b, b, &rr0 );
+		// if(rr0==0.0)return;
 		
 		myDcopy( N, b, r );	
 		myDcsrmvForA( N, N, NonzeroCountA, -1.0, CsrCofA, CsrPtrA, CsrIndA, x, 1.0, r );
@@ -4187,68 +4204,35 @@ static void solveWithConjugatedGradient(void){
 }
 
 
-//static void calculateVirialPressureAtParticle()
-//{
-//    const double (*x)[DIM] = Position;
-//	const double (*p) = PressureP;
-//	
-//	#pragma acc kernels present(x[0:ParticleCount][0:DIM],p[0:ParticleCount],NeighborIndP[0:NeighborIndCountP])
-//	#pragma acc loop independent
-//	#pragma omp parallel for
-//	for(int iP=0;iP<ParticleCount;++iP){
-//		double virialAtParticle=0.0;
-//		#pragma acc loop seq
-//		for(int jN=0;jN<NeighborCountP[iP];++jN){
-//			const int jP=NeighborIndP[ NeighborPtrP[iP]+jN ];
-//			if(iP==jP)continue;
-//			double xij[DIM];
-//			#pragma acc loop seq
-//			for(int iD=0;iD<DIM;++iD){
-//				xij[iD] = Mod(x[jP][iD] - x[iP][iD] +0.5*DomainWidth[iD] , DomainWidth[iD]) -0.5*DomainWidth[iD];
-//			}
-//			const double rij2 = (xij[0]*xij[0] + xij[1]*xij[1] + xij[2]*xij[2]);
-//			if(rij2==0.0)continue;
-//			if(RadiusP*RadiusP - rij2 > 0){
-//				const double rij = sqrt(rij2);
-//				const double dwij = dwpdr(rij,RadiusP);
-//				virialAtParticle -= 0.5*(p[iP]+p[jP])*dwij*rij*ParticleVolume;
-//			}
-//		}
-//		#ifdef TWO_DIMENSIONAL
-//		VirialPressureAtParticle[iP] = 1.0/2.0/ParticleVolume * virialAtParticle;
-//		#else
-//		VirialPressureAtParticle[iP] = 1.0/3.0/ParticleVolume * virialAtParticle;
-//		#endif
-//	}
-//}
 
-static void calculateVirialPressureInsideRadius()
+static void calculateVirialPressureSmoothed()
 {
 	const double (*x)[DIM] = Position;
 	
-	#pragma acc kernels present(Property[0:ParticleCount],x[0:ParticleCount][0:DIM],VirialPressureAtParticle[0:ParticleCount],NeighborIndP[0:NeighborIndCountP])
+	#pragma acc kernels present(Property[0:ParticleCount],x[0:ParticleCount][0:DIM],Position[0:ParticleCount],VirialPressureAtParticle[0:ParticleCount],NeighborIndP[0:NeighborIndCountP])
 	#pragma acc loop independent
 	#pragma omp parallel for
 	for(int iP=0;iP<ParticleCount;++iP){
-		int count=1;
-		double sum = VirialPressureAtParticle[iP];
+		double press = VirialPressureAtParticle[iP];
 		#pragma acc loop seq
 		for(int jN=0;jN<NeighborCountP[iP];++jN){
 			const int jP=NeighborIndP[ NeighborPtrP[iP]+jN ];
 			if(iP==jP)continue;
-			if(WALL_BEGIN<=Property[jP] && Property[jP]<WALL_END)continue;
+			if(Property[jP]!=Property[jP])continue;
 			double xij[DIM];
 			#pragma acc loop seq
 			for(int iD=0;iD<DIM;++iD){
-				xij[iD] = Mod(x[jP][iD] - x[iP][iD] +0.5*DomainWidth[iD] , DomainWidth[iD]) -0.5*DomainWidth[iD];
+				xij[iD] = Mod(Position[jP][iD] - Position[iP][iD] +0.5*DomainWidth[iD] , DomainWidth[iD]) -0.5*DomainWidth[iD];
 			}
+			const double radius = RadiusP;
 			const double rij2 = (xij[0]*xij[0] + xij[1]*xij[1] + xij[2]*xij[2]);
-			if(RadiusP*RadiusP - rij2 > 0){
-				count +=1;
-				sum += VirialPressureAtParticle[jP];
+			if(radius*radius - rij2 >= 0){
+				const double rij = sqrt(rij2);
+				const double weight = wp(rij,radius);
+				press += (VirialPressureAtParticle[jP]-VirialPressureAtParticle[iP])*weight;
 			}
 		}
-		VirialPressureInsideRadius[iP] = sum/count;
+		VirialPressureSmoothed[iP] = press;
 	}
 }
 

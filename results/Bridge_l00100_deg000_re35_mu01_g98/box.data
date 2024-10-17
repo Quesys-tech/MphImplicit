@@ -12,12 +12,12 @@ BulkViscosity					1.0e-1		1.0e-1		1.0e-1		1.0e-1		1.0e-1		1.0e-1
 BulkViscosityInExpansion		1.0e-1		1.0e-1		0.0e-1		0.0e-1		0.0e-1		0.0e-1
 PseudoplasticFlowBehaviorIndexN			1.0			1.0			1.0			1.0			1.0			1.0
 PseudoplasticFlowConsistencyIndexK		1.0e-1		1.0e-1		1.0e-1		1.0e-1		1.0e-1		1.0e-1
-PapanastasiouRegularizationIndexM		0.0			0.0			0.0			0.0			0.0			0.0
+PapanastasiouRegularizationIndexMYs		0.0			0.0			0.0			0.0			0.0			0.0
 MohrCoulombInterceptC					0.0			0.0			0.0			0.0			0.0			0.0
 MohrCoulombFrictionAnglePhi				0.0			0.0			0.0			0.0			0.0			0.0
 SolidFacePseudoplasticFlowBehaviorIndexN		1.0
 SolidFacePseudoplasticFlowConsistencyIndexK		1.0e-1
-SolidFacePapanastasiouRegularizationIndexM		0.0
+SolidFacePapanastasiouRegularizationIndexMYs	0.0
 SolidFaceMohrCoulombInterceptC					0.0
 SolidFaceMohrCoulombFrictionAnglePhi			0.0
 SurfaceTension					0.072		0.072		0.072		0.072		0.072		0.072
