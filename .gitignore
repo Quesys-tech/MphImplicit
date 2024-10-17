@@ -1,0 +1,19 @@
+# results
+*.grid
+*.log
+*.prof
+*.vtk
+
+# exe
+*.o
+*.exe
+generator/GeneratorForMph
+/source/MphImplicit
+/source/MphImplicit_3d
+/source/Mph_gcc
+/source/Mph_gcc_3d
+/source/Mph_acc
+/source/Mph_acc_3d
+
+# misc
+/.vscode/*
