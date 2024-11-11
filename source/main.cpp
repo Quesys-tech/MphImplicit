@@ -4,7 +4,7 @@
 //------------------------------------------------------------------------------------------------//
 //    Developed by    : Masahiro Kondo                                                            //
 //    Distributed in  : 2022                                                                      //
-//    Lisence         : GPLv3                                                                     //
+//    Licence         : GPLv3                                                                     //
 //    For instruction : see README                                                                //
 //    For theory      : see the following references                                              //
 //     [1] CPM 8 (2021) 69-86,        https://doi.org/10.1007/s40571-020-00313-w                  //
@@ -154,7 +154,7 @@ static double SolidFaceMohrCoulombFrictionAnglePhi;
 
 static double SurfaceTension[TYPE_COUNT];
 static double CofA[TYPE_COUNT];   // coefficient for attractive pressure
-static double CofK;               // coefficinet (ratio) for diffuse interface thickness normalized by ParticleSpacing
+static double CofK;               // coefficient (ratio) for diffuse interface thickness normalized by ParticleSpacing
 static double InteractionRatio[TYPE_COUNT][TYPE_COUNT];
 #pragma acc declare create(SurfaceTension,CofA,CofK,InteractionRatio)
 
@@ -198,7 +198,7 @@ static double WallRotation[WALL_END][DIM][DIM];
 #pragma acc declare create(WallParticleBegin,WallParticleEnd,WallCenter,WallVelocity,WallOmega,WallRotation)
 
 
-// proceedures
+// procedures
 static void readDataFile(char *filename);
 static void readGridFile(char *filename);
 static void writeProfFile(char *filename);
@@ -411,7 +411,7 @@ int main(int argc, char *argv[])
 	
 	{
         time_t t=time(NULL);
-        log_printf("start main roop at %s\n",ctime(&t));
+        log_printf("start main loop at %s\n",ctime(&t));
     }
     int iStep=(int)(Time/Dt);
 	OutputNext = Time;
@@ -514,7 +514,7 @@ int main(int argc, char *argv[])
 	
     {
         time_t t=time(NULL);
-        log_printf("end main roop at %s\n",ctime(&t));
+        log_printf("end main loop at %s\n",ctime(&t));
     	log_printf("neighbor search:         %lf [CPU sec]\n", (double)cNeigh/CLOCKS_PER_SEC);
     	log_printf("explicit calculation:    %lf [CPU sec]\n", (double)cExplicit/CLOCKS_PER_SEC);
     	log_printf("implicit triplet:        %lf [CPU sec]\n", (double)cImplicitTriplet/CLOCKS_PER_SEC);
@@ -529,7 +529,7 @@ int main(int argc, char *argv[])
     	log_printf("total (check):           %lf [CPU sec]\n", (double)(cEnd-cStart)/CLOCKS_PER_SEC);
     }
 
-//  device memory delete ommited
+//  device memory delete omitted
 //	#pragma acc exit data delete(.....)
     return 0;
 
@@ -677,7 +677,7 @@ static void readGridFile(char *filename)
 		#pragma acc enter data create(NeighborCount[0:ParticleCount]) attach(NeighborCount)
 		#pragma acc enter data create(NeighborCountP[0:ParticleCount]) attach(NeighborCountP)
 		
-		// calculate minimun PowerParticleCount which sataisfies  ParticleCount < PowerParticleCount = pow(2,ParticleCountPower) 
+		// calculate minimum PowerParticleCount which satisfies  ParticleCount < PowerParticleCount = pow(2,ParticleCountPower) 
 		ParticleCountPower=0;
 		while((ParticleCount>>ParticleCountPower)!=0){
 			++ParticleCountPower;
@@ -1488,7 +1488,7 @@ static void calculateNeighbor( void )
 						const double qij2= qij[0]*qij[0]+qij[1]*qij[1]+qij[2]*qij[2];
 						#ifndef _OPENACC
 						if( iP!=jP && qij2==0.0 ){
-							log_printf("line:%d, Warning:overlaped iP=%d, jP=%d\n", __LINE__, iP, jP);
+							log_printf("line:%d, Warning:overlapped iP=%d, jP=%d\n", __LINE__, iP, jP);
 							log_printf("x[iP] = %e, %e, %e\n", Position[iP][0],Position[iP][1],Position[iP][2]);
 							log_printf("v[iP] = %e, %e, %e\n", Velocity[iP][0],Velocity[iP][1],Velocity[iP][2]);
 						}
@@ -1527,7 +1527,7 @@ static void calculateNeighbor( void )
 						const double qij2= qij[0]*qij[0]+qij[1]*qij[1]+qij[2]*qij[2];
 						#ifndef _OPENACC
 						if( iP!=jP && qij2==0.0 ){
-							log_printf("line:%d, Warning:overlaped iP=%d, jP=%d\n", __LINE__, iP, jP);
+							log_printf("line:%d, Warning:overlapped iP=%d, jP=%d\n", __LINE__, iP, jP);
 							log_printf("x[iP] = %e, %e, %e\n", Position[iP][0],Position[iP][1],Position[iP][2]);
 							log_printf("v[iP] = %e, %e, %e\n", Velocity[iP][0],Velocity[iP][1],Velocity[iP][2]);
 						}
@@ -2315,7 +2315,7 @@ static void calculateWall()
 static long int NonzeroCountA;
 static double       *CsrCofA;  // [ FluidCount * DIM x NeighFluidCount * DIM]
 static int          *CsrIndA;  // [ FluidCount * DIM x NeighFluidCount * DIM]
-static long int *CsrPtrA;  // [ FluidCount * DIM + 1 ] NeighborFluidCountÇÃêœéZóÒÇ∆ÇµÇƒåvéZâ¬
+static long int *CsrPtrA;  // [ FluidCount * DIM + 1 ] NeighborFluidCountÔøΩÃêœéZÔøΩÔøΩ∆ÇÔøΩÔøΩƒåvÔøΩZÔøΩÔøΩ
 static double *VectorB;  // [ FluidCount * DIM ]
 #pragma acc declare create(NonzeroCountA,CsrCofA,CsrIndA,CsrPtrA,VectorB)
 
@@ -2542,7 +2542,7 @@ static void freeMatrixA( void ){
 static long int  NonzeroCountC;
 static double       *CsrCofC; // [ FluidCount * DIM x NeighCount ]
 static int          *CsrIndC; // [ FluidCount * DIM x NeighCount ]
-static long int *CsrPtrC; // [ FluidCount * DIM + 1 ] NeighCountÇÃêœéZóÒ
+static long int *CsrPtrC; // [ FluidCount * DIM + 1 ] NeighCountÔøΩÃêœéZÔøΩÔøΩ
 static double *VectorP; // [ ParticleCount ]
 #pragma acc declare create(NonzeroCountC, CsrCofC,CsrIndC,CsrPtrC,VectorP)
 
@@ -2778,7 +2778,7 @@ static void multiplyMatrixC( void )
 		}
 	}
 	
-	// A = A + CÉ©C^T
+	// A = A + CÔøΩÔøΩC^T
 	#pragma acc kernels present(CsrPtrA[0:N],CsrIndA[0:NonzeroCountA],CsrCofA[0:NonzeroCountA],CsrPtrC[0:N],CsrIndC[0:NonzeroCountC],CsrCofC[0:NonzeroCountC],NeighborInd[0:NeighborIndCount],NeighborPtrP[0:PowerParticleCount],NeighborIndP[0:NeighborIndCountP],NeighborCountP[0:ParticleCount],Lambda[0:ParticleCount])
 	#pragma acc loop independent
 	#pragma omp parallel for
@@ -2847,7 +2847,7 @@ static int (*MultiGridCellMax)[DIM];
 static int (*MultiGridCount)[DIM];
 #pragma acc declare create(MultiGridCellMin,MultiGridCellMax,MultiGridCount)
 
-static int  (*MultiGridOffset); //Ç±Ç±Ç…âΩå¬ñ⁄ÇÃGridÇ©ÇÁÇ™iPowerÇÃäKëwÇ©Çé¶Ç∑
+static int  (*MultiGridOffset); //ÔøΩÔøΩÔøΩÔøΩÔøΩ…âÔøΩÔøΩ¬ñ⁄ÇÔøΩGridÔøΩÔøΩÔøΩÁÇ™iPowerÔøΩÃäKÔøΩwÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩ
 #pragma acc declare create(MultiGridOffset)
 
 static int TotalTopGridCount;

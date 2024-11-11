@@ -10,7 +10,7 @@ void* err_malloc(size_t size,const char* file,int line)
   void* ptr;
   ptr=malloc(size);
   if(ptr==NULL){
-    fprintf(stderr, "Memmory Allocation Error\n");
+    fprintf(stderr, "Memory Allocation Error\n");
     fprintf(stderr, "file:%s  line:%d\n",file,line);
     exit(1);
   }
