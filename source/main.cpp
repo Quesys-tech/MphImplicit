@@ -418,9 +418,9 @@ int main(int argc, char *argv[])
 	VtkOutputNext = Time;
 	cStart = clock();
 	cFrom = cStart;
-	while(Time < EndTime + 1.0e-5*Dt){
+	while(Time < EndTime + 0.5*Dt){
 		
-		if( Time + 1.0e-5*Dt >= OutputNext ){
+		if( Time + 0.5*Dt >= OutputNext ){
 			char filename[256];
 			sprintf(filename,proffilename,iStep);
 			writeProfFile(filename);
@@ -1870,7 +1870,7 @@ static void calculatePhysicalCoefficients()
 			const double eps = 1.0e-18/Dt;
 			const double gamma = ShearRate[iP]+eps;
 			const double Ys  = SolidFaceYieldStress[iP]+kf*pow(eps,nf);
-			Muf[iP] = kf * pow(gamma,(nf-1)) + (Ys/gamma)*(1.0-exp(-mYsf*Ys*gamma));
+			Muf[iP] = kf * pow(gamma,(nf-1)) + (Ys/gamma)*(1.0-exp(-mYsf/Ys*gamma));
 		}
 		else{
 			Muf[iP]=Mu[iP];
