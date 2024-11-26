@@ -2315,7 +2315,7 @@ static void calculateWall()
 static long int NonzeroCountA;
 static double       *CsrCofA;  // [ FluidCount * DIM x NeighFluidCount * DIM]
 static int          *CsrIndA;  // [ FluidCount * DIM x NeighFluidCount * DIM]
-static long int *CsrPtrA;  // [ FluidCount * DIM + 1 ] NeighborFluidCount�̐ώZ��Ƃ��Čv�Z��
+static long int *CsrPtrA;  // [ FluidCount * DIM + 1 ] NeighborFluidCountの積算列として計算可
 static double *VectorB;  // [ FluidCount * DIM ]
 #pragma acc declare create(NonzeroCountA,CsrCofA,CsrIndA,CsrPtrA,VectorB)
 
@@ -2542,7 +2542,7 @@ static void freeMatrixA( void ){
 static long int  NonzeroCountC;
 static double       *CsrCofC; // [ FluidCount * DIM x NeighCount ]
 static int          *CsrIndC; // [ FluidCount * DIM x NeighCount ]
-static long int *CsrPtrC; // [ FluidCount * DIM + 1 ] NeighCount�̐ώZ��
+static long int *CsrPtrC; // [ FluidCount * DIM + 1 ] NeighCountの積算列
 static double *VectorP; // [ ParticleCount ]
 #pragma acc declare create(NonzeroCountC, CsrCofC,CsrIndC,CsrPtrC,VectorP)
 
@@ -2778,7 +2778,7 @@ static void multiplyMatrixC( void )
 		}
 	}
 	
-	// A = A + C��C^T
+	// A = A + CΛC^T
 	#pragma acc kernels present(CsrPtrA[0:N],CsrIndA[0:NonzeroCountA],CsrCofA[0:NonzeroCountA],CsrPtrC[0:N],CsrIndC[0:NonzeroCountC],CsrCofC[0:NonzeroCountC],NeighborInd[0:NeighborIndCount],NeighborPtrP[0:PowerParticleCount],NeighborIndP[0:NeighborIndCountP],NeighborCountP[0:ParticleCount],Lambda[0:ParticleCount])
 	#pragma acc loop independent
 	#pragma omp parallel for
@@ -2847,7 +2847,7 @@ static int (*MultiGridCellMax)[DIM];
 static int (*MultiGridCount)[DIM];
 #pragma acc declare create(MultiGridCellMin,MultiGridCellMax,MultiGridCount)
 
-static int  (*MultiGridOffset); //�����ɉ��ڂ�Grid���炪iPower�̊K�w��������
+static int  (*MultiGridOffset); //ここに何個目のGridからがiPowerの階層かを示す
 #pragma acc declare create(MultiGridOffset)
 
 static int TotalTopGridCount;
